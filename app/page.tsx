@@ -2,17 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react"
 import toast from "react-hot-toast"
+import { supabase } from "@/lib/supabase"
 
-const STORAGE_KEY = "angel-glez-products"
 const PURCHASES_KEY = "angel-glez-purchases"
 const CART_KEY = "angel-glez-cart"
 const LIKES_KEY = "angel-glez-likes"
 
 const quarters = [
-  { code: "Q1", label: "Quarter 1" },
-  { code: "Q2", label: "Quarter 2" },
-  { code: "Q3", label: "Quarter 3" },
-  { code: "Q4", label: "Quarter 4" },
+  { code: "Q1", label: "Q1" },
+  { code: "Q2", label: "Q2" },
+  { code: "Q3", label: "Q3" },
+  { code: "Q4", label: "Q4" },
 ]
 
 const grades = [
@@ -33,7 +33,7 @@ type Product = {
   quarter: string
   grade: string
   fileName: string
-  fileDataUrl: string
+  fileUrl: string
   imageUrl: string
   likes?: number
   sold?: number
@@ -53,17 +53,60 @@ export default function Home() {
   const [animatingHeart, setAnimatingHeart] = useState<number | null>(null)
   const [featuredIndex, setFeaturedIndex] = useState(0)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [loadingProducts, setLoadingProducts] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
-    const savedProducts = localStorage.getItem(STORAGE_KEY)
     const savedPurchases = localStorage.getItem(PURCHASES_KEY)
     const savedCart = localStorage.getItem(CART_KEY)
     const savedLikes = localStorage.getItem(LIKES_KEY)
 
-    if (savedProducts) setProducts(JSON.parse(savedProducts))
     if (savedPurchases) setPurchases(JSON.parse(savedPurchases))
     if (savedCart) setCart(JSON.parse(savedCart))
     if (savedLikes) setLikedIds(JSON.parse(savedLikes))
+  }, [])
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      setLoadingProducts(true)
+      setLoadError(null)
+
+      const { data, error } = await supabase.from("products").select("*")
+
+      console.log("Supabase data:", data)
+
+      if (error) {
+        console.log("Supabase raw error:", error)
+        console.log("Error message:", error.message)
+        console.log("Error details:", error.details)
+        console.log("Error hint:", error.hint)
+        console.log("Error code:", error.code)
+        setLoadError(error.message || "Failed to load products.")
+        setLoadingProducts(false)
+        return
+      }
+
+      const mappedProducts: Product[] = (data || []).map((item: any) => ({
+        id: Number(item.id),
+        title: item.title || "Untitled Product",
+        description: item.description || "",
+        price: Number(item.price || 0),
+        quarter: item.quarter || "",
+        grade: item.grade || "",
+        fileName: item.file_name || "",
+        fileUrl: item.file_url || "",
+        imageUrl: item.image_url || "",
+        likes: Number(item.likes || 0),
+        sold: Number(item.sold || 0),
+      }))
+
+      console.log("Mapped products:", mappedProducts)
+
+      setProducts(mappedProducts)
+      setLoadingProducts(false)
+    }
+
+    loadProducts()
   }, [])
 
   const featuredProducts = products.slice(0, 5)
@@ -97,11 +140,11 @@ export default function Home() {
   }, [selectedProduct])
 
   const filteredProducts = useMemo(() => {
-    if (!selectedQuarter || !selectedGrade) return []
-    return products.filter(
-      (product) =>
-        product.quarter === selectedQuarter && product.grade === selectedGrade
-    )
+    return products.filter((product) => {
+      const matchQuarter = selectedQuarter ? product.quarter === selectedQuarter : true
+      const matchGrade = selectedGrade ? product.grade === selectedGrade : true
+      return matchQuarter && matchGrade
+    })
   }, [products, selectedQuarter, selectedGrade])
 
   const currentFeatured =
@@ -116,11 +159,6 @@ export default function Home() {
 
   const getQuarterCount = (quarterLabel: string) =>
     products.filter((p) => p.quarter === quarterLabel).length
-
-  const saveProducts = (updatedProducts: Product[]) => {
-    setProducts(updatedProducts)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProducts))
-  }
 
   const addToCart = (product: Product) => {
     if (cart.includes(product.id)) {
@@ -166,7 +204,7 @@ export default function Home() {
       }
     })
 
-    saveProducts(updatedProducts)
+    setProducts(updatedProducts)
     setAnimatingHeart(productId)
     setTimeout(() => setAnimatingHeart(null), 260)
   }
@@ -190,7 +228,7 @@ export default function Home() {
         }
       })
 
-      saveProducts(updatedProducts)
+      setProducts(updatedProducts)
     }
 
     const updatedCart = cart.filter((id) => id !== product.id)
@@ -218,8 +256,19 @@ export default function Home() {
       return
     }
 
+    if (!product.fileUrl) {
+      toast.error("Download link is not connected yet.", {
+        style: {
+          borderRadius: "14px",
+          background: "#0f172a",
+          color: "#fff",
+        },
+      })
+      return
+    }
+
     const link = document.createElement("a")
-    link.href = product.fileDataUrl
+    link.href = product.fileUrl
     link.download = product.fileName || `${product.title}.file`
     document.body.appendChild(link)
     link.click()
@@ -439,11 +488,17 @@ export default function Home() {
                             }}
                           >
                             <div className="mb-4 overflow-hidden rounded-[22px]">
-                              <img
-                                src={currentFeatured.imageUrl}
-                                alt={currentFeatured.title}
-                                className="h-52 w-full object-cover"
-                              />
+                              {currentFeatured.imageUrl ? (
+                                <img
+                                  src={currentFeatured.imageUrl}
+                                  alt={currentFeatured.title}
+                                  className="h-52 w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-52 w-full items-center justify-center bg-slate-100 text-slate-400">
+                                  No image
+                                </div>
+                              )}
                             </div>
 
                             <div className="mb-3 flex items-start justify-between gap-3">
@@ -452,7 +507,7 @@ export default function Home() {
                                   {currentFeatured.title}
                                 </p>
                                 <p className="mt-1 text-sm text-slate-500">
-                                  {currentFeatured.grade} • {currentFeatured.quarter}
+                                  {currentFeatured.grade || "No grade"} • {currentFeatured.quarter || "No quarter"}
                                 </p>
                               </div>
 
@@ -503,7 +558,7 @@ export default function Home() {
                         </div>
                       ) : (
                         <div className="rounded-[28px] bg-slate-50 p-8 text-center text-slate-500">
-                          Upload products to show live previews here.
+                          {loadingProducts ? "Loading products..." : "Upload products to show live previews here."}
                         </div>
                       )}
                     </div>
@@ -687,20 +742,32 @@ export default function Home() {
               </a>
             </div>
 
-            {selectedQuarter && selectedGrade ? (
+            {loadingProducts ? (
+              <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/60 p-12 text-center text-slate-500 backdrop-blur">
+                Loading products...
+              </div>
+            ) : loadError ? (
+              <div className="rounded-[28px] border border-red-200 bg-red-50 p-12 text-center text-red-600">
+                Failed to load products: {loadError}
+              </div>
+            ) : (
               <>
                 <div className="mb-6 rounded-3xl border border-white/50 bg-white/70 p-5 shadow-sm backdrop-blur-xl">
                   <h3 className="text-2xl font-black">
-                    {selectedQuarter} / {selectedGrade}
+                    {selectedQuarter ? selectedQuarter : "All Quarters"}
+                    {" / "}
+                    {selectedGrade ? selectedGrade : "All Grades"}
                   </h3>
                   <p className="mt-1 text-slate-500">
-                    Products inside the selected folder
+                    {selectedQuarter || selectedGrade
+                      ? "Products inside the selected folder"
+                      : "Showing all available products"}
                   </p>
                 </div>
 
                 {filteredProducts.length === 0 ? (
                   <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/60 p-12 text-center text-slate-500 backdrop-blur">
-                    No products yet for this folder.
+                    No products found.
                   </div>
                 ) : (
                   <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -718,16 +785,23 @@ export default function Home() {
                           className="relative block w-full text-left"
                         >
                           <div className="relative overflow-hidden">
-                            <img
-                              src={product.imageUrl}
-                              alt={product.title}
-                              className="h-60 w-full object-cover transition duration-500 group-hover:scale-105"
-                            />
+                            {product.imageUrl ? (
+                              <img
+                                src={product.imageUrl}
+                                alt={product.title}
+                                className="h-60 w-full object-cover transition duration-500 group-hover:scale-105"
+                              />
+                            ) : (
+                              <div className="flex h-60 w-full items-center justify-center bg-slate-100 text-slate-400">
+                                No image
+                              </div>
+                            )}
+
                             <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-900/25 to-transparent" />
 
                             <div className="absolute right-4 top-4 flex flex-col items-end gap-2">
                               <div className="rounded-full bg-violet-600 px-3 py-1 text-xs font-bold text-white shadow">
-                                {product.grade}
+                                {product.grade || "No grade"}
                               </div>
 
                               {isBestSeller(product) && (
@@ -832,10 +906,6 @@ export default function Home() {
                   </div>
                 )}
               </>
-            ) : (
-              <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/60 p-12 text-center text-slate-500 backdrop-blur">
-                Select a quarter folder and a grade folder to view products.
-              </div>
             )}
           </div>
         </section>
@@ -867,21 +937,27 @@ export default function Home() {
             <div className="relative grid max-h-[90vh] overflow-y-auto lg:grid-cols-[1.05fr_0.95fr]">
               <div className="p-4 md:p-6">
                 <div className="overflow-hidden rounded-[28px] border border-white/15 bg-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
-                  <img
-                    src={selectedProduct.imageUrl}
-                    alt={selectedProduct.title}
-                    className="h-[260px] w-full object-cover md:h-[380px]"
-                  />
+                  {selectedProduct.imageUrl ? (
+                    <img
+                      src={selectedProduct.imageUrl}
+                      alt={selectedProduct.title}
+                      className="h-[260px] w-full object-cover md:h-[380px]"
+                    />
+                  ) : (
+                    <div className="flex h-[260px] w-full items-center justify-center bg-slate-200 text-slate-500 md:h-[380px]">
+                      No image
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="relative flex flex-col p-6 md:p-8">
                 <div className="mb-5 flex flex-wrap items-center gap-2">
                   <span className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-white/80">
-                    {selectedProduct.quarter}
+                    {selectedProduct.quarter || "No quarter"}
                   </span>
                   <span className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-emerald-100">
-                    {selectedProduct.grade}
+                    {selectedProduct.grade || "No grade"}
                   </span>
                 </div>
 
