@@ -71,6 +71,9 @@ export default function Home() {
       setLoadingProducts(true)
       setLoadError(null)
 
+      console.log("SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
+      console.log("HAS ANON KEY:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+      console.log("SUPABASE CLIENT:", supabase)
       const { data, error } = await supabase.from("products").select("*")
 
       console.log("Supabase data:", data)
