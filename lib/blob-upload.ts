@@ -1,9 +1,14 @@
-import { put } from "@vercel/blob";
+"use client"
 
-export async function uploadToBlob(file: File) {
-  const res = await put(file.name, file, {
-    access: "private",
-  });
+import { upload } from "@vercel/blob/client"
 
-  return res.url;
+export async function uploadToBlob(file: File, folder: string) {
+  const safeName = file.name.replace(/\s+/g, "-")
+
+  const blob = await upload(`${folder}/${Date.now()}-${safeName}`, file, {
+    access: "public",
+    handleUploadUrl: "/api/blob/upload",
+  })
+
+  return blob
 }
