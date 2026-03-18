@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import toast from "react-hot-toast"
+import { uploadToBlob } from "@/lib/blob-upload"
 
 const STORAGE_KEY = "angel-glez-products"
 const ADMIN_SESSION_KEY = "angel-glez-admin-auth"
@@ -14,17 +15,8 @@ type ProductItem = {
   quarter: string
   grade: string
   fileName: string
-  fileDataUrl: string
+  fileUrl: string
   imageUrl: string
-}
-
-function fileToBase64(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
 }
 
 export default function AdminPage() {
@@ -56,12 +48,40 @@ export default function AdminPage() {
     setCheckedAuth(true)
 
     const savedProducts = localStorage.getItem(STORAGE_KEY)
-    setProducts(savedProducts ? JSON.parse(savedProducts) : [])
+    if (!savedProducts) {
+      setProducts([])
+      return
+    }
+
+    try {
+      const parsed = JSON.parse(savedProducts)
+
+      const normalizedProducts: ProductItem[] = parsed.map((product: any) => ({
+        id: product.id,
+        title: product.title,
+        description: product.description,
+        price: product.price,
+        quarter: product.quarter,
+        grade: product.grade,
+        fileName: product.fileName,
+        fileUrl: product.fileUrl || product.fileDataUrl || "",
+        imageUrl: product.imageUrl || "",
+      }))
+
+      setProducts(normalizedProducts)
+    } catch {
+      setProducts([])
+    }
   }, [])
 
   const handleLogout = () => {
     localStorage.removeItem(ADMIN_SESSION_KEY)
     window.location.href = "/admin-login"
+  }
+
+  const saveProducts = (updatedProducts: ProductItem[]) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProducts))
+    setProducts(updatedProducts)
   }
 
   const resetForm = () => {
@@ -86,39 +106,41 @@ export default function AdminPage() {
     return allowedExtensions.some((ext) => fileName.endsWith(ext))
   }
 
+  const showError = (message: string) => {
+    toast.error(message, {
+      style: {
+        borderRadius: "14px",
+        background: "#0f172a",
+        color: "#fff",
+      },
+    })
+  }
+
+  const showSuccess = (message: string) => {
+    toast.success(message, {
+      style: {
+        borderRadius: "14px",
+        background: "#0f172a",
+        color: "#fff",
+      },
+    })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!title || !description || !price || !quarter || !grade) {
-      toast.error("Please complete all fields", {
-        style: {
-          borderRadius: "14px",
-          background: "#0f172a",
-          color: "#fff",
-        },
-      })
+      showError("Please complete all fields")
       return
     }
 
     if (!editingProductId && (!file || !image)) {
-      toast.error("Please upload both file and image", {
-        style: {
-          borderRadius: "14px",
-          background: "#0f172a",
-          color: "#fff",
-        },
-      })
+      showError("Please upload both file and image")
       return
     }
 
     if (file && !isAllowedFile(file)) {
-      toast.error("Only Word, PowerPoint, ZIP, or RAR files are allowed", {
-        style: {
-          borderRadius: "14px",
-          background: "#0f172a",
-          color: "#fff",
-        },
-      })
+      showError("Only Word, PowerPoint, ZIP, or RAR files are allowed")
       return
     }
 
@@ -129,27 +151,24 @@ export default function AdminPage() {
         const existingProduct = products.find((p) => p.id === editingProductId)
 
         if (!existingProduct) {
-          toast.error("Product not found", {
-            style: {
-              borderRadius: "14px",
-              background: "#0f172a",
-              color: "#fff",
-            },
-          })
+          showError("Product not found")
           return
         }
 
-        const updatedFileDataUrl = file
-          ? await fileToBase64(file)
-          : existingProduct.fileDataUrl
+        let updatedFileUrl = existingProduct.fileUrl
+        let updatedFileName = existingProduct.fileName
+        let updatedImageUrl = existingProduct.imageUrl
 
-        const updatedImageUrl = image
-          ? await fileToBase64(image)
-          : existingProduct.imageUrl
+        if (file) {
+          const uploadedProductFile = await uploadToBlob(file, "products")
+          updatedFileUrl = uploadedProductFile.url
+          updatedFileName = file.name
+        }
 
-        const updatedFileName = file
-          ? file.name
-          : existingProduct.fileName
+        if (image) {
+          const uploadedThumbnail = await uploadToBlob(image, "thumbnails")
+          updatedImageUrl = uploadedThumbnail.url
+        }
 
         const updatedProducts = products.map((product) =>
           product.id === editingProductId
@@ -161,29 +180,20 @@ export default function AdminPage() {
                 quarter,
                 grade,
                 fileName: updatedFileName,
-                fileDataUrl: updatedFileDataUrl,
+                fileUrl: updatedFileUrl,
                 imageUrl: updatedImageUrl,
               }
             : product
         )
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProducts))
-        setProducts(updatedProducts)
-
-        toast.success("Product updated successfully!", {
-          style: {
-            borderRadius: "14px",
-            background: "#0f172a",
-            color: "#fff",
-          },
-        })
-
+        saveProducts(updatedProducts)
+        showSuccess("Product updated successfully!")
         resetForm()
         return
       }
 
-      const imageUrl = await fileToBase64(image as File)
-      const fileDataUrl = await fileToBase64(file as File)
+      const uploadedThumbnail = await uploadToBlob(image as File, "thumbnails")
+      const uploadedProductFile = await uploadToBlob(file as File, "products")
 
       const newProduct: ProductItem = {
         id: Date.now(),
@@ -193,32 +203,18 @@ export default function AdminPage() {
         quarter,
         grade,
         fileName: (file as File).name,
-        fileDataUrl,
-        imageUrl,
+        fileUrl: uploadedProductFile.url,
+        imageUrl: uploadedThumbnail.url,
       }
 
       const updatedProducts = [...products, newProduct]
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProducts))
-      setProducts(updatedProducts)
+      saveProducts(updatedProducts)
 
-      toast.success("Product uploaded successfully!", {
-        style: {
-          borderRadius: "14px",
-          background: "#0f172a",
-          color: "#fff",
-        },
-      })
-
+      showSuccess("Product uploaded successfully!")
       resetForm()
     } catch (error) {
       console.error(error)
-      toast.error(editingProductId ? "Update failed" : "Upload failed", {
-        style: {
-          borderRadius: "14px",
-          background: "#0f172a",
-          color: "#fff",
-        },
-      })
+      showError(editingProductId ? "Update failed" : "Upload failed")
     } finally {
       setLoading(false)
     }
@@ -244,20 +240,13 @@ export default function AdminPage() {
 
   const deleteProduct = (id: number) => {
     const updatedProducts = products.filter((product) => product.id !== id)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProducts))
-    setProducts(updatedProducts)
+    saveProducts(updatedProducts)
 
     if (editingProductId === id) {
       resetForm()
     }
 
-    toast.success("Product deleted", {
-      style: {
-        borderRadius: "14px",
-        background: "#0f172a",
-        color: "#fff",
-      },
-    })
+    showSuccess("Product deleted")
   }
 
   if (!checkedAuth) return null
@@ -487,8 +476,8 @@ export default function AdminPage() {
                     ? "Updating..."
                     : "Uploading..."
                   : editingProductId
-                  ? "Update Product"
-                  : "Upload Product"}
+                    ? "Update Product"
+                    : "Upload Product"}
               </button>
             </form>
           </section>
