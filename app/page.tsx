@@ -67,14 +67,14 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    const loadProducts = async () => {
-      setLoadingProducts(true)
-      setLoadError(null)
+  const loadProducts = async () => {
+    setLoadingProducts(true)
+    setLoadError(null)
 
-      console.log("SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
-      console.log("HAS ANON KEY:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-      console.log("SUPABASE CLIENT:", supabase)
-      const { data, error } = await supabase.from("products").select("*")
+    console.log("SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
+    console.log("HAS ANON KEY:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+
+    const { data, error } = await supabase.from("products").select("*")
 
       console.log("Supabase data:", data)
 
