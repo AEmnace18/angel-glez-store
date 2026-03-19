@@ -80,18 +80,22 @@ export default function Home() {
       }
 
       const mappedProducts: Product[] = (data || []).map((item: any) => ({
-        id: Number(item.id),
-        title: item.title || "Untitled Product",
-        description: item.description || "",
-        price: Number(item.price || 0),
-        quarter: item.quarter || "",
-        grade: item.grade || "",
-        fileName: item.file_name || "",
-        fileUrl: item.file_url || "",
-        imageUrl: item.image_url || "",
-        likes: Number(item.likes || 0),
-        sold: Number(item.sold || 0),
-      }))
+  id: Number(item.id),
+  title: item.title || "Untitled Product",
+  description: item.description || "",
+  price: Number(item.price || 0),
+  quarter: String(item.quarter || "").trim().toUpperCase(),
+  grade:
+    String(item.grade || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\b\w/g, (char) => char.toUpperCase()),
+  fileName: item.file_name || "",
+  fileUrl: item.file_url || "",
+  imageUrl: item.image_url || "",
+  likes: Number(item.likes || 0),
+  sold: Number(item.sold || 0),
+}))
 
       setProducts(mappedProducts)
       setLoadingProducts(false)
