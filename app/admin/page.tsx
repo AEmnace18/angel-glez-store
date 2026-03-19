@@ -373,16 +373,16 @@ export default function AdminPage() {
                     Quarter
                   </label>
                   <select
-                    value={quarter}
-                    onChange={(e) => setQuarter(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
-                  >
-                    <option value="">Select Quarter</option>
-                    <option value="Q1">Q1</option>
-                    <option value="Q2">Q2</option>
-                    <option value="Q3">Q3</option>
-                    <option value="Q4">Q4</option>
-                  </select>
+  value={quarter}
+  onChange={(e) => setQuarter(e.target.value)}
+  className="w-full rounded-xl border p-3"
+>
+  <option value="">Select Quarter</option>
+  <option value="Q1">Q1</option>
+  <option value="Q2">Q2</option>
+  <option value="Q3">Q3</option>
+  <option value="Q4">Q4</option>
+</select>
                 </div>
               </div>
 
@@ -391,19 +391,19 @@ export default function AdminPage() {
                   Grade Level
                 </label>
                 <select
-                  value={grade}
-                  onChange={(e) => setGrade(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
-                >
-                  <option value="">Select Grade</option>
-                  <option>Kinder</option>
-                  <option>Grade 1</option>
-                  <option>Grade 2</option>
-                  <option>Grade 3</option>
-                  <option>Grade 4</option>
-                  <option>Grade 5</option>
-                  <option>Grade 6</option>
-                </select>
+  value={grade}
+  onChange={(e) => setGrade(e.target.value)}
+  className="w-full rounded-xl border p-3"
+>
+  <option value="">Select Grade</option>
+  <option value="Kinder">Kinder</option>
+  <option value="Grade 1">Grade 1</option>
+  <option value="Grade 2">Grade 2</option>
+  <option value="Grade 3">Grade 3</option>
+  <option value="Grade 4">Grade 4</option>
+  <option value="Grade 5">Grade 5</option>
+  <option value="Grade 6">Grade 6</option>
+</select>
               </div>
 
               <div>
