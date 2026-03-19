@@ -156,7 +156,8 @@ export default function CheckoutPage() {
         .insert(purchaseRows)
 
       if (insertError) {
-        toast.error("Failed to save payment.", {
+        console.log("Insert error:", insertError)
+        toast.error(insertError?.message || "Failed to save payment.", {
           style: {
             borderRadius: "14px",
             background: "#0f172a",
