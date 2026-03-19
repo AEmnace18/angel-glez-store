@@ -24,14 +24,14 @@ export default function PurchasesPage() {
   const [purchases, setPurchases] = useState<PurchaseRow[]>([])
   const [loading, setLoading] = useState(true)
 
-  const loadPurchases = async (email: string) => {
+  const loadPurchases = async (email: string, silent = false) => {
     if (!email) {
       setPurchases([])
       setLoading(false)
       return
     }
 
-    setLoading(true)
+    if (!silent) setLoading(true)
 
     const { data, error } = await supabase
       .from("purchases")
@@ -55,7 +55,7 @@ export default function PurchasesPage() {
 
     if (error) {
       console.log("Load purchases error:", error)
-      setPurchases([])
+      if (!silent) setPurchases([])
       setLoading(false)
       return
     }
@@ -71,14 +71,27 @@ export default function PurchasesPage() {
   }, [])
 
   useEffect(() => {
-  if (!buyerEmail) return
+    if (!buyerEmail) return
 
-  const interval = setInterval(() => {
-    loadPurchases(buyerEmail)
-  }, 3000)
+    const channel = supabase
+      .channel("buyer-purchases")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "purchases",
+        },
+        () => {
+          loadPurchases(buyerEmail, true)
+        }
+      )
+      .subscribe()
 
-  return () => clearInterval(interval)
-}, [buyerEmail])
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [buyerEmail])
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-10 text-slate-900">
