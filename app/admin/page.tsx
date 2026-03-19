@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react"
 import toast from "react-hot-toast"
 import { uploadToBlob } from "@/lib/blob-upload"
+import { supabase } from "@/lib/supabase"
 
-const STORAGE_KEY = "angel-glez-products"
 const ADMIN_SESSION_KEY = "angel-glez-admin-auth"
 
 type ProductItem = {
@@ -17,6 +17,8 @@ type ProductItem = {
   fileName: string
   fileUrl: string
   imageUrl: string
+  likes: number
+  sold: number
 }
 
 export default function AdminPage() {
@@ -38,74 +40,6 @@ export default function AdminPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const imageInputRef = useRef<HTMLInputElement | null>(null)
 
-  useEffect(() => {
-    const isAdmin = localStorage.getItem(ADMIN_SESSION_KEY)
-    if (isAdmin !== "true") {
-      window.location.href = "/admin-login"
-      return
-    }
-
-    setCheckedAuth(true)
-
-    const savedProducts = localStorage.getItem(STORAGE_KEY)
-    if (!savedProducts) {
-      setProducts([])
-      return
-    }
-
-    try {
-      const parsed = JSON.parse(savedProducts)
-
-      const normalizedProducts: ProductItem[] = parsed.map((product: any) => ({
-        id: product.id,
-        title: product.title,
-        description: product.description,
-        price: product.price,
-        quarter: product.quarter,
-        grade: product.grade,
-        fileName: product.fileName,
-        fileUrl: product.fileUrl || product.fileDataUrl || "",
-        imageUrl: product.imageUrl || "",
-      }))
-
-      setProducts(normalizedProducts)
-    } catch {
-      setProducts([])
-    }
-  }, [])
-
-  const handleLogout = () => {
-    localStorage.removeItem(ADMIN_SESSION_KEY)
-    window.location.href = "/admin-login"
-  }
-
-  const saveProducts = (updatedProducts: ProductItem[]) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedProducts))
-    setProducts(updatedProducts)
-  }
-
-  const resetForm = () => {
-    setTitle("")
-    setDescription("")
-    setPrice("")
-    setQuarter("")
-    setGrade("")
-    setFile(null)
-    setImage(null)
-    setImagePreview(null)
-    setCurrentFileName("")
-    setEditingProductId(null)
-
-    if (fileInputRef.current) fileInputRef.current.value = ""
-    if (imageInputRef.current) imageInputRef.current.value = ""
-  }
-
-  const isAllowedFile = (selectedFile: File) => {
-    const allowedExtensions = [".doc", ".docx", ".ppt", ".pptx", ".zip", ".rar"]
-    const fileName = selectedFile.name.toLowerCase()
-    return allowedExtensions.some((ext) => fileName.endsWith(ext))
-  }
-
   const showError = (message: string) => {
     toast.error(message, {
       style: {
@@ -124,6 +58,76 @@ export default function AdminPage() {
         color: "#fff",
       },
     })
+  }
+
+  const isAllowedFile = (selectedFile: File) => {
+    const allowedExtensions = [".doc", ".docx", ".ppt", ".pptx", ".zip", ".rar"]
+    const lowerName = selectedFile.name.toLowerCase()
+    return allowedExtensions.some((ext) => lowerName.endsWith(ext))
+  }
+
+  const mapSupabaseProducts = (rows: any[]): ProductItem[] => {
+    return rows.map((product) => ({
+      id: Number(product.id),
+      title: product.title || "",
+      description: product.description || "",
+      price: Number(product.price || 0),
+      quarter: product.quarter || "",
+      grade: product.grade || "",
+      fileName: product.file_name || "",
+      fileUrl: product.file_url || "",
+      imageUrl: product.image_url || "",
+      likes: Number(product.likes || 0),
+      sold: Number(product.sold || 0),
+    }))
+  }
+
+  const loadProducts = async () => {
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("id", { ascending: false })
+
+    if (error) {
+      console.error("Failed to load products:", error)
+      showError("Failed to load products")
+      return
+    }
+
+    setProducts(mapSupabaseProducts(data || []))
+  }
+
+  useEffect(() => {
+    const isAdmin = localStorage.getItem(ADMIN_SESSION_KEY)
+
+    if (isAdmin !== "true") {
+      window.location.href = "/admin-login"
+      return
+    }
+
+    setCheckedAuth(true)
+    void loadProducts()
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem(ADMIN_SESSION_KEY)
+    window.location.href = "/admin-login"
+  }
+
+  const resetForm = () => {
+    setTitle("")
+    setDescription("")
+    setPrice("")
+    setQuarter("")
+    setGrade("")
+    setFile(null)
+    setImage(null)
+    setImagePreview(null)
+    setCurrentFileName("")
+    setEditingProductId(null)
+
+    if (fileInputRef.current) fileInputRef.current.value = ""
+    if (imageInputRef.current) imageInputRef.current.value = ""
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,23 +174,27 @@ export default function AdminPage() {
           updatedImageUrl = uploadedThumbnail.url
         }
 
-        const updatedProducts = products.map((product) =>
-          product.id === editingProductId
-            ? {
-                ...product,
-                title,
-                description,
-                price: Number(price),
-                quarter,
-                grade,
-                fileName: updatedFileName,
-                fileUrl: updatedFileUrl,
-                imageUrl: updatedImageUrl,
-              }
-            : product
-        )
+        const { error } = await supabase
+          .from("products")
+          .update({
+            title,
+            description,
+            price: Number(price),
+            quarter,
+            grade,
+            file_name: updatedFileName,
+            file_url: updatedFileUrl,
+            image_url: updatedImageUrl,
+          })
+          .eq("id", editingProductId)
 
-        saveProducts(updatedProducts)
+        if (error) {
+          console.error("Update failed:", error)
+          showError("Update failed")
+          return
+        }
+
+        await loadProducts()
         showSuccess("Product updated successfully!")
         resetForm()
         return
@@ -195,21 +203,26 @@ export default function AdminPage() {
       const uploadedThumbnail = await uploadToBlob(image as File, "thumbnails")
       const uploadedProductFile = await uploadToBlob(file as File, "products")
 
-      const newProduct: ProductItem = {
-        id: Date.now(),
+      const { error } = await supabase.from("products").insert({
         title,
         description,
         price: Number(price),
         quarter,
         grade,
-        fileName: (file as File).name,
-        fileUrl: uploadedProductFile.url,
-        imageUrl: uploadedThumbnail.url,
+        file_name: (file as File).name,
+        file_url: uploadedProductFile.url,
+        image_url: uploadedThumbnail.url,
+        likes: 0,
+        sold: 0,
+      })
+
+      if (error) {
+        console.error("Insert failed:", error)
+        showError("Upload failed")
+        return
       }
 
-      const updatedProducts = [...products, newProduct]
-      saveProducts(updatedProducts)
-
+      await loadProducts()
       showSuccess("Product uploaded successfully!")
       resetForm()
     } catch (error) {
@@ -238,9 +251,16 @@ export default function AdminPage() {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
-  const deleteProduct = (id: number) => {
-    const updatedProducts = products.filter((product) => product.id !== id)
-    saveProducts(updatedProducts)
+  const deleteProduct = async (id: number) => {
+    const { error } = await supabase.from("products").delete().eq("id", id)
+
+    if (error) {
+      console.error("Delete failed:", error)
+      showError("Delete failed")
+      return
+    }
+
+    await loadProducts()
 
     if (editingProductId === id) {
       resetForm()
@@ -440,6 +460,8 @@ export default function AdminPage() {
                     if (selected) {
                       const url = URL.createObjectURL(selected)
                       setImagePreview(url)
+                    } else {
+                      setImagePreview(editingProductId ? imagePreview : null)
                     }
                   }}
                 />
