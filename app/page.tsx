@@ -43,6 +43,12 @@ const getQuarterPreviewProducts = (products: Product[], quarterLabel: string) =>
   return products.filter((p) => p.quarter === quarterLabel).slice(0, 1)
 }
 
+const toastStyle = {
+  borderRadius: "14px",
+  background: "#0f172a",
+  color: "#fff",
+}
+
 export default function Home() {
   const [selectedQuarter, setSelectedQuarter] = useState<string | null>(null)
   const [selectedGrade, setSelectedGrade] = useState<string | null>(null)
@@ -80,22 +86,21 @@ export default function Home() {
       }
 
       const mappedProducts: Product[] = (data || []).map((item: any) => ({
-  id: Number(item.id),
-  title: item.title || "Untitled Product",
-  description: item.description || "",
-  price: Number(item.price || 0),
-  quarter: String(item.quarter || "").trim().toUpperCase(),
-  grade:
-    String(item.grade || "")
-      .trim()
-      .toLowerCase()
-      .replace(/\b\w/g, (char) => char.toUpperCase()),
-  fileName: item.file_name || "",
-  fileUrl: item.file_url || "",
-  imageUrl: item.image_url || "",
-  likes: Number(item.likes || 0),
-  sold: Number(item.sold || 0),
-}))
+        id: Number(item.id),
+        title: item.title || "Untitled Product",
+        description: item.description || "",
+        price: Number(item.price || 0),
+        quarter: String(item.quarter || "").trim().toUpperCase(),
+        grade: String(item.grade || "")
+          .trim()
+          .toLowerCase()
+          .replace(/\b\w/g, (char) => char.toUpperCase()),
+        fileName: item.file_name || "",
+        fileUrl: item.file_url || "",
+        imageUrl: item.image_url || "",
+        likes: Number(item.likes || 0),
+        sold: Number(item.sold || 0),
+      }))
 
       setProducts(mappedProducts)
       setLoadingProducts(false)
@@ -113,7 +118,7 @@ export default function Home() {
       setFeaturedIndex((prev) =>
         prev === featuredProducts.length - 1 ? 0 : prev + 1
       )
-    }, 2500)
+    }, 3200)
 
     return () => clearInterval(interval)
   }, [featuredProducts.length])
@@ -157,27 +162,14 @@ export default function Home() {
 
   const addToCart = (product: Product) => {
     if (cart.includes(product.id)) {
-      toast("Already in cart", {
-        style: {
-          borderRadius: "14px",
-          background: "#0f172a",
-          color: "#fff",
-        },
-      })
+      toast("Already in cart", { style: toastStyle })
       return
     }
 
     const updatedCart = [...cart, product.id]
     setCart(updatedCart)
     localStorage.setItem(CART_KEY, JSON.stringify(updatedCart))
-
-    toast.success("Added to cart", {
-      style: {
-        borderRadius: "14px",
-        background: "#0f172a",
-        color: "#fff",
-      },
-    })
+    toast.success("Added to cart", { style: toastStyle })
   }
 
   const toggleLike = (productId: number) => {
@@ -211,22 +203,14 @@ export default function Home() {
   const downloadProduct = (product: Product) => {
     if (!hasPurchased(product.id)) {
       toast.error("Buy this product first to unlock download.", {
-        style: {
-          borderRadius: "14px",
-          background: "#0f172a",
-          color: "#fff",
-        },
+        style: toastStyle,
       })
       return
     }
 
     if (!product.fileUrl) {
       toast.error("Download link is not connected yet.", {
-        style: {
-          borderRadius: "14px",
-          background: "#0f172a",
-          color: "#fff",
-        },
+        style: toastStyle,
       })
       return
     }
@@ -239,76 +223,71 @@ export default function Home() {
     document.body.removeChild(link)
 
     toast.success("Download started.", {
-      style: {
-        borderRadius: "14px",
-        background: "#0f172a",
-        color: "#fff",
-      },
+      style: toastStyle,
     })
   }
 
   return (
     <>
-      <main className="min-h-screen bg-slate-100 text-slate-900">
+      <main className="min-h-screen bg-[#020617] text-white">
         <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600" />
-          <div className="absolute -left-24 top-10 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-fuchsia-300/20 blur-3xl" />
+          <div className="absolute inset-0 bg-[#020617]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(99,102,241,0.34),transparent_28%),radial-gradient(circle_at_82%_18%,rgba(168,85,247,0.28),transparent_26%),radial-gradient(circle_at_78%_72%,rgba(236,72,153,0.25),transparent_30%),radial-gradient(circle_at_30%_88%,rgba(56,189,248,0.18),transparent_28%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_18%,transparent_82%,rgba(255,255,255,0.02))]" />
+          <div className="absolute -left-24 top-16 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
+          <div className="absolute right-[-80px] top-8 h-80 w-80 rounded-full bg-fuchsia-500/20 blur-3xl" />
+          <div className="absolute bottom-[-100px] left-1/3 h-80 w-80 rounded-full bg-cyan-500/10 blur-3xl" />
 
           <div className="relative">
-            <header className="sticky top-0 z-50 px-3 pt-3 md:px-6 md:pt-4">
+            <header className="sticky top-0 z-50 px-3 pt-3 md:px-6 md:pt-5">
               <div className="mx-auto max-w-7xl">
-                <div className="relative overflow-hidden rounded-[30px] border border-violet-200/30 bg-gradient-to-r from-indigo-950/90 via-violet-900/85 to-fuchsia-900/80 px-3 py-3 shadow-[0_24px_80px_rgba(15,23,42,0.28)] backdrop-blur-2xl md:rounded-[34px] md:px-5 md:py-4">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.18),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.10),transparent_28%)]" />
-                  <div className="absolute -left-8 top-2 h-24 w-24 rounded-full bg-cyan-300/10 blur-2xl" />
-                  <div className="absolute right-4 top-0 h-28 w-28 rounded-full bg-fuchsia-300/10 blur-2xl" />
-
-                  <div className="relative flex items-center justify-between gap-3">
+                <div className="rounded-[30px] border border-white/10 bg-white/5 px-3 py-3 shadow-[0_25px_80px_rgba(0,0,0,0.28)] backdrop-blur-2xl md:px-5 md:py-4">
+                  <div className="flex items-center justify-between gap-3">
                     <a
                       href="/"
-                      className="group brand-pill flex min-w-0 items-center gap-3 rounded-[24px] border border-white/15 bg-white/10 px-3 py-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.10)] backdrop-blur-xl transition duration-300 hover:-translate-y-0.5 hover:bg-white/15"
+                      className="group flex min-w-0 items-center gap-3 rounded-[24px] border border-white/10 bg-white/8 px-3 py-2.5 transition duration-300 hover:-translate-y-0.5 hover:bg-white/12"
                     >
                       <div className="relative shrink-0">
-                        <div className="brand-logo-glow absolute inset-0 rounded-2xl bg-white/20 blur-md transition group-hover:bg-white/30" />
+                        <div className="absolute inset-0 rounded-2xl bg-white/15 blur-md transition group-hover:bg-white/20" />
                         <img
                           src="/logo.png"
                           alt="Angel Glez COT Logo"
-                          className="brand-logo relative h-12 w-12 rounded-2xl border border-white/30 object-cover shadow-md transition duration-300 group-hover:rotate-3 md:h-14 md:w-14"
+                          className="relative h-12 w-12 rounded-2xl border border-white/20 object-cover shadow-lg transition duration-300 group-hover:rotate-3 md:h-14 md:w-14"
                         />
                       </div>
 
                       <div className="min-w-0">
-                        <p className="brand-title truncate text-base font-black tracking-tight text-white md:text-[1.7rem]">
+                        <p className="truncate text-base font-black tracking-tight text-white md:text-[1.7rem]">
                           ANGEL GLEZ&apos;s COT
                         </p>
-                        <p className="truncate text-[11px] font-medium text-white/70 md:text-xs">
+                        <p className="truncate text-[11px] font-medium text-white/55 md:text-xs">
                           Digital Teaching Essentials
                         </p>
                       </div>
                     </a>
 
-                    <nav className="hidden items-center gap-2 rounded-full border border-white/15 bg-white/10 p-2 shadow-[0_10px_30px_rgba(0,0,0,0.08)] backdrop-blur-xl md:flex">
+                    <nav className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/6 p-2 backdrop-blur-xl md:flex">
                       <a
                         href="#quarters"
-                        className="rounded-full px-4 py-2.5 text-sm font-semibold text-white/80 transition hover:bg-white/15 hover:text-white"
+                        className="rounded-full px-4 py-2.5 text-sm font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
                       >
                         Quarters
                       </a>
                       <a
                         href="#marketplace"
-                        className="rounded-full px-4 py-2.5 text-sm font-semibold text-white/80 transition hover:bg-white/15 hover:text-white"
+                        className="rounded-full px-4 py-2.5 text-sm font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
                       >
                         Shop
                       </a>
                       <a
                         href="/purchases"
-                        className="rounded-full px-4 py-2.5 text-sm font-semibold text-white/80 transition hover:bg-white/15 hover:text-white"
+                        className="rounded-full px-4 py-2.5 text-sm font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
                       >
                         Purchases
                       </a>
                       <a
                         href="/admin-login"
-                        className="rounded-full px-4 py-2.5 text-sm font-semibold text-white/80 transition hover:bg-white/15 hover:text-white"
+                        className="rounded-full px-4 py-2.5 text-sm font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
                       >
                         Admin
                       </a>
@@ -317,12 +296,12 @@ export default function Home() {
                     <div className="hidden items-center gap-3 md:flex">
                       <a
                         href="/cart"
-                        className="rounded-2xl border border-white/15 bg-white/12 px-5 py-3 text-sm font-bold text-white shadow-[0_10px_24px_rgba(0,0,0,0.14)] backdrop-blur-xl transition hover:bg-white/18"
+                        className="rounded-2xl border border-white/10 bg-white/8 px-5 py-3 text-sm font-bold text-white shadow-[0_10px_24px_rgba(0,0,0,0.16)] transition hover:bg-white/12"
                       >
                         Cart {cart.length}
                       </a>
 
-                      <div className="rounded-2xl border border-pink-300/20 bg-pink-400/10 px-5 py-3 text-sm font-bold text-pink-100 shadow-[0_10px_24px_rgba(236,72,153,0.10)] backdrop-blur-xl">
+                      <div className="rounded-2xl border border-pink-300/10 bg-pink-400/10 px-5 py-3 text-sm font-bold text-pink-100/90">
                         Likes {likedIds.length}
                       </div>
                     </div>
@@ -330,40 +309,39 @@ export default function Home() {
                     <div className="flex items-center gap-2 md:hidden">
                       <a
                         href="/cart"
-                        className="rounded-2xl border border-white/15 bg-white/12 px-3 py-2 text-xs font-bold text-white backdrop-blur-xl"
+                        className="rounded-2xl border border-white/10 bg-white/8 px-3 py-2 text-xs font-bold text-white"
                       >
                         Cart {cart.length}
                       </a>
-
-                      <div className="rounded-2xl border border-pink-300/20 bg-pink-400/10 px-3 py-2 text-xs font-bold text-pink-100 backdrop-blur-xl">
+                      <div className="rounded-2xl border border-pink-300/10 bg-pink-400/10 px-3 py-2 text-xs font-bold text-pink-100/90">
                         {likedIds.length}
                       </div>
                     </div>
                   </div>
 
-                  <div className="relative mt-3 md:hidden">
-                    <div className="grid grid-cols-4 gap-2 rounded-[24px] border border-white/15 bg-white/8 p-2 backdrop-blur-xl">
+                  <div className="mt-3 md:hidden">
+                    <div className="grid grid-cols-4 gap-2 rounded-[24px] border border-white/10 bg-white/[0.04] p-2 backdrop-blur-xl">
                       <a
                         href="#quarters"
-                        className="rounded-2xl px-2 py-2 text-center text-xs font-semibold text-white/80 transition hover:bg-white/15 hover:text-white"
+                        className="rounded-2xl px-2 py-2 text-center text-xs font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
                       >
                         Quarters
                       </a>
                       <a
                         href="#marketplace"
-                        className="rounded-2xl px-2 py-2 text-center text-xs font-semibold text-white/80 transition hover:bg-white/15 hover:text-white"
+                        className="rounded-2xl px-2 py-2 text-center text-xs font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
                       >
                         Shop
                       </a>
                       <a
                         href="/purchases"
-                        className="rounded-2xl px-2 py-2 text-center text-xs font-semibold text-white/80 transition hover:bg-white/15 hover:text-white"
+                        className="rounded-2xl px-2 py-2 text-center text-xs font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
                       >
                         Files
                       </a>
                       <a
                         href="/admin-login"
-                        className="rounded-2xl px-2 py-2 text-center text-xs font-semibold text-white/80 transition hover:bg-white/15 hover:text-white"
+                        className="rounded-2xl px-2 py-2 text-center text-xs font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
                       >
                         Admin
                       </a>
@@ -373,26 +351,33 @@ export default function Home() {
               </div>
             </header>
 
-            <div className="mx-auto max-w-7xl px-4 py-20 md:px-6 md:py-24">
-              <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="mx-auto max-w-7xl px-4 pb-20 pt-16 md:px-6 md:pb-24 md:pt-20">
+              <div className="grid items-center gap-12 lg:grid-cols-[1.08fr_0.92fr]">
                 <div>
-                  <div className="mb-5 flex items-center gap-3">
+                  <div className="mb-6 flex flex-wrap items-center gap-3">
                     <img
                       src="/logo.png"
                       alt="Angel Glez COT Logo"
-                      className="h-16 w-16 rounded-2xl border border-white/20 object-cover shadow-lg"
+                      className="h-14 w-14 rounded-2xl border border-white/15 object-cover shadow-lg md:h-16 md:w-16"
                     />
-
-                    <div className="inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white/95 backdrop-blur">
+                    <div className="inline-flex rounded-full border border-white/10 bg-white/8 px-4 py-2 text-sm font-semibold text-white/85 backdrop-blur">
                       Ready-to-use files for teachers
                     </div>
                   </div>
 
-                  <h1 className="max-w-3xl text-5xl font-black leading-tight text-white md:text-6xl">
-                    Premium COT learning materials for Kinder to Grade 6
+                  <h1 className="max-w-4xl text-5xl font-black leading-[0.98] tracking-tight md:text-7xl">
+                    <span className="bg-gradient-to-r from-violet-200 via-fuchsia-200 to-pink-200 bg-clip-text text-transparent">
+                      Premium COT
+                    </span>
+                    <br />
+                    <span className="text-white">learning materials</span>
+                    <br />
+                    <span className="text-4xl text-white/70 md:text-5xl">
+                      for Kinder to Grade 6
+                    </span>
                   </h1>
 
-                  <p className="mt-6 max-w-2xl text-lg leading-8 text-white/85">
+                  <p className="mt-6 max-w-2xl text-base leading-8 text-white/68 md:text-lg">
                     Organized by quarter and grade level. Clean files, clear thumbnails,
                     simple checkout, and instant digital delivery for your teaching needs.
                   </p>
@@ -400,108 +385,133 @@ export default function Home() {
                   <div className="mt-8 flex flex-wrap gap-4">
                     <a
                       href="#marketplace"
-                      className="rounded-2xl bg-white px-6 py-3 font-bold text-violet-700 shadow-xl hover:bg-slate-100"
+                      className="rounded-2xl px-6 py-3 font-bold text-white transition hover:scale-[1.03]"
+                      style={{
+                        background: "linear-gradient(135deg, #7c3aed, #ec4899)",
+                        boxShadow: "0 18px 40px rgba(124,58,237,0.35)",
+                      }}
                     >
                       Explore Products
                     </a>
                     <a
                       href="#quarters"
-                      className="rounded-2xl border border-white/35 px-6 py-3 font-bold text-white hover:bg-white/10"
+                      className="rounded-2xl border border-white/15 bg-white/6 px-6 py-3 font-bold text-white transition hover:bg-white/10"
                     >
                       Browse Folders
                     </a>
                   </div>
 
-                  <div className="mt-10 grid max-w-xl grid-cols-3 gap-3">
-                    <div className="rounded-3xl border border-white/20 bg-white/10 p-4 backdrop-blur">
-                      <p className="text-2xl font-black text-white">{products.length}</p>
-                      <p className="text-sm text-white/80">Products</p>
+                  <div className="mt-6 flex flex-wrap gap-3 text-sm text-white/60">
+                    <span className="rounded-full border border-white/10 bg-white/6 px-4 py-2">
+                      Instant download
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/6 px-4 py-2">
+                      Trusted by teachers
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/6 px-4 py-2">
+                      Organized by grade and quarter
+                    </span>
+                  </div>
+
+                  <div className="mt-10 grid max-w-2xl gap-4 sm:grid-cols-3">
+                    <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-5 backdrop-blur-xl">
+                      <p className="text-3xl font-black text-white">{products.length}</p>
+                      <p className="mt-1 text-sm text-white/55">Products</p>
                     </div>
-                    <div className="rounded-3xl border border-white/20 bg-white/10 p-4 backdrop-blur">
-                      <p className="text-2xl font-black text-white">{cart.length}</p>
-                      <p className="text-sm text-white/80">In Cart</p>
+                    <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-5 backdrop-blur-xl">
+                      <p className="text-3xl font-black text-white">{cart.length}</p>
+                      <p className="mt-1 text-sm text-white/55">In Cart</p>
                     </div>
-                    <div className="rounded-3xl border border-white/20 bg-white/10 p-4 backdrop-blur">
-                      <p className="text-2xl font-black text-white">{likedIds.length}</p>
-                      <p className="text-sm text-white/80">Likes</p>
+                    <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-5 backdrop-blur-xl">
+                      <p className="text-3xl font-black text-white">{likedIds.length}</p>
+                      <p className="mt-1 text-sm text-white/55">Likes</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="hidden lg:block">
-                  <div className="rounded-[32px] border border-white/20 bg-white/10 p-5 shadow-2xl backdrop-blur-xl">
-                    <div className="rounded-[28px] bg-white p-5 shadow-xl">
-                      <div className="mb-4 flex items-center justify-between">
+                  <div className="rounded-[34px] border border-white/10 bg-white/[0.05] p-5 backdrop-blur-2xl transition duration-300 hover:-translate-y-2 hover:shadow-[0_30px_90px_rgba(0,0,0,0.35)]">
+                    <div className="rounded-[30px] border border-white/10 bg-gradient-to-b from-white to-slate-100 p-5 shadow-[0_16px_60px_rgba(15,23,42,0.18)]">
+                      <div className="mb-5 flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-semibold text-slate-500">Featured Preview</p>
-                          <h3 className="text-2xl font-black text-slate-900">Teacher Marketplace</h3>
+                          <p className="text-sm font-semibold text-slate-500">
+                            Featured Preview
+                          </p>
+                          <h3 className="text-2xl font-black text-slate-900">
+                            Teacher Marketplace
+                          </h3>
                         </div>
-                        <div className="rounded-2xl bg-violet-100 px-3 py-2 text-sm font-bold text-violet-700">
+                        <div className="rounded-full bg-violet-100 px-3 py-2 text-sm font-bold text-violet-700">
                           Live
                         </div>
                       </div>
 
                       {currentFeatured ? (
-                        <div className="relative min-h-[360px] overflow-hidden rounded-[28px] bg-slate-50 p-4">
+                        <div className="rounded-[28px] bg-slate-50 p-4">
                           <div
                             key={currentFeatured.id}
-                            className="rounded-[24px] border border-slate-100 bg-white p-4 shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
+                            className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)]"
                             style={{
-                              transformStyle: "preserve-3d",
-                              animation: "cardFlipIn 1.2s cubic-bezier(0.22, 1, 0.36, 1)",
+                              animation: "cardFloatIn 0.7s ease",
                             }}
                           >
-                            <div className="mb-4 overflow-hidden rounded-[22px]">
+                            <div className="relative overflow-hidden">
                               {currentFeatured.imageUrl ? (
                                 <img
                                   src={currentFeatured.imageUrl}
                                   alt={currentFeatured.title}
-                                  className="h-52 w-full object-cover"
+                                  className="h-64 w-full object-cover"
                                 />
                               ) : (
-                                <div className="flex h-52 w-full items-center justify-center bg-slate-100 text-slate-400">
+                                <div className="flex h-64 w-full items-center justify-center bg-slate-100 text-slate-400">
                                   No image
                                 </div>
                               )}
+
+                              <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950/30 to-transparent" />
+
+                              <div className="absolute right-4 top-4 flex flex-col items-end gap-2">
+                                <div className="rounded-full bg-violet-600 px-3 py-1 text-xs font-bold text-white shadow">
+                                  {currentFeatured.grade || "No grade"}
+                                </div>
+
+                                {isBestSeller(currentFeatured) && (
+                                  <div className="rounded-full bg-amber-400 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-amber-950 shadow">
+                                    Best Seller
+                                  </div>
+                                )}
+                              </div>
                             </div>
 
-                            <div className="mb-3 flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-lg font-black leading-tight text-slate-900">
-                                  {currentFeatured.title}
-                                </p>
-                                <p className="mt-1 text-sm text-slate-500">
-                                  {currentFeatured.grade || "No grade"} • {currentFeatured.quarter || "No quarter"}
-                                </p>
+                            <div className="p-5">
+                              <div className="mb-3 flex items-start justify-between gap-4">
+                                <div>
+                                  <p className="text-xl font-black text-slate-900">
+                                    {currentFeatured.title}
+                                  </p>
+                                  <p className="mt-1 text-sm text-slate-500">
+                                    {currentFeatured.quarter || "No quarter"} •{" "}
+                                    {currentFeatured.grade || "No grade"}
+                                  </p>
+                                </div>
+                                <div className="rounded-full bg-slate-900 px-4 py-2 text-sm font-bold text-white">
+                                  ₱{currentFeatured.price}
+                                </div>
                               </div>
 
-                              <div className="rounded-2xl bg-violet-600 px-3 py-2 text-sm font-bold text-white">
-                                ₱{currentFeatured.price}
-                              </div>
-                            </div>
-
-                            {isBestSeller(currentFeatured) && (
-                              <div className="mb-3">
-                                <span className="rounded-full bg-amber-400 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-amber-950">
-                                  Best Seller
+                              <div className="mb-3 flex flex-wrap items-center gap-2">
+                                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                                  {currentFeatured.likes || 0} likes
+                                </span>
+                                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                                  {currentFeatured.sold || 0} sold
                                 </span>
                               </div>
-                            )}
 
-                            <div className="mb-3 flex flex-wrap items-center gap-2">
-                              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                                {currentFeatured.likes || 0} likes
-                              </span>
-                              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
-                                {currentFeatured.sold || 0} sold
-                              </span>
-                            </div>
-
-                            {currentFeatured.description && (
                               <p className="line-clamp-2 text-sm text-slate-500">
-                                {currentFeatured.description}
+                                {currentFeatured.description || "Clean and ready-to-use classroom material."}
                               </p>
-                            )}
+                            </div>
                           </div>
 
                           {featuredProducts.length > 1 && (
@@ -515,14 +525,17 @@ export default function Home() {
                                       ? "w-8 bg-violet-600"
                                       : "w-2.5 bg-slate-300"
                                   }`}
+                                  aria-label={`Show featured product ${index + 1}`}
                                 />
                               ))}
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div className="rounded-[28px] bg-slate-50 p-8 text-center text-slate-500">
-                          {loadingProducts ? "Loading products..." : "Upload products to show live previews here."}
+                        <div className="rounded-[28px] bg-slate-50 p-10 text-center text-slate-500">
+                          {loadingProducts
+                            ? "Loading products..."
+                            : "Upload products to show live previews here."}
                         </div>
                       )}
                     </div>
@@ -533,16 +546,21 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="quarters" className="mx-auto max-w-7xl px-4 py-16 md:px-6">
+        <section
+          id="quarters"
+          className="relative mx-auto max-w-7xl px-4 py-16 md:px-6"
+        >
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-600">
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-300">
                 Organized folders
               </p>
-              <h2 className="mt-2 text-4xl font-black tracking-tight">Browse by Quarter</h2>
+              <h2 className="mt-2 text-4xl font-black tracking-tight text-white">
+                Browse by Quarter
+              </h2>
             </div>
-            <p className="max-w-xl text-sm leading-7 text-slate-500">
-              Hover each folder to preview what is inside. Click any quarter to reveal the matching grade folders and products.
+            <p className="max-w-xl text-sm leading-7 text-white/55">
+              Choose a quarter to reveal the matching grade folders and products.
             </p>
           </div>
 
@@ -560,7 +578,7 @@ export default function Home() {
                     setSelectedQuarter(quarter.label)
                     setSelectedGrade(null)
                   }}
-                  className="quarter-folder group text-center"
+                  className="group text-center"
                   style={{ animationDelay: `${index * 90}ms` }}
                 >
                   <div className="relative mx-auto h-[255px] w-full max-w-[300px]">
@@ -615,15 +633,15 @@ export default function Home() {
                   </div>
 
                   <div className="mt-5 space-y-2">
-                    <p className="text-2xl font-extrabold text-slate-900">{quarter.label}</p>
+                    <p className="text-2xl font-extrabold text-white">{quarter.label}</p>
 
                     <div className="flex flex-wrap items-center justify-center gap-2">
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-slate-700">
+                      <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-white/75">
                         {quarterCount} {quarterCount === 1 ? "Product" : "Products"}
                       </span>
 
                       {isActive && (
-                        <span className="rounded-full bg-violet-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-violet-700">
+                        <span className="rounded-full bg-violet-500/20 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-violet-100">
                           Selected
                         </span>
                       )}
@@ -637,20 +655,20 @@ export default function Home() {
 
         {selectedQuarter && (
           <section className="mx-auto max-w-7xl px-4 pb-12 md:px-6">
-            <div className="rounded-[32px] border border-slate-200 bg-white/75 p-8 shadow-[0_12px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+            <div className="rounded-[32px] border border-white/10 bg-white/[0.05] p-8 shadow-[0_12px_40px_rgba(0,0,0,0.20)] backdrop-blur-xl">
               <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-800">
+                    <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-100">
                       Selected quarter
                     </span>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-slate-700">
+                    <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-white/75">
                       {getQuarterCount(selectedQuarter)} products
                     </span>
                   </div>
 
-                  <h3 className="mt-2 text-3xl font-black">{selectedQuarter}</h3>
-                  <p className="mt-2 text-slate-500">
+                  <h3 className="mt-2 text-3xl font-black text-white">{selectedQuarter}</h3>
+                  <p className="mt-2 text-white/55">
                     Choose a grade folder to see all matching materials.
                   </p>
                 </div>
@@ -660,7 +678,7 @@ export default function Home() {
                     setSelectedQuarter(null)
                     setSelectedGrade(null)
                   }}
-                  className="rounded-2xl border border-slate-300 bg-white/80 px-5 py-3 font-bold text-slate-700 backdrop-blur transition hover:bg-white hover:shadow-md"
+                  className="rounded-2xl border border-white/10 bg-white/8 px-5 py-3 font-bold text-white/85 transition hover:bg-white/12"
                 >
                   Back to all quarters
                 </button>
@@ -671,10 +689,10 @@ export default function Home() {
                   <button
                     key={grade}
                     onClick={() => setSelectedGrade(grade)}
-                    className={`rounded-[24px] border px-4 py-5 text-center font-bold shadow-sm transition-all duration-300 ${
+                    className={`rounded-[24px] border px-4 py-5 text-center font-bold transition-all duration-300 ${
                       selectedGrade === grade
-                        ? "scale-[1.02] border-emerald-600 bg-emerald-600 text-white shadow-lg"
-                        : "border-slate-200 bg-white/70 text-slate-700 hover:-translate-y-1 hover:border-emerald-300 hover:bg-white hover:shadow-md"
+                        ? "scale-[1.02] border-emerald-500 bg-emerald-500 text-white shadow-[0_12px_40px_rgba(16,185,129,0.32)]"
+                        : "border-white/10 bg-white/6 text-white/80 hover:-translate-y-1 hover:bg-white/10"
                     }`}
                   >
                     {grade}
@@ -686,43 +704,49 @@ export default function Home() {
         )}
 
         <section id="marketplace" className="mx-auto max-w-7xl px-4 pb-16 md:px-6">
-          <div className="rounded-[32px] border border-white/40 bg-white/60 p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
+          <div className="rounded-[32px] border border-white/10 bg-white/[0.05] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.22)] backdrop-blur-2xl">
             <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-600">
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-300">
                   Storefront
                 </p>
-                <h2 className="mt-2 text-4xl font-black tracking-tight">Featured Products</h2>
-                <p className="mt-2 text-slate-500">
+                <h2 className="mt-2 text-4xl font-black tracking-tight text-white">
+                  Featured Products
+                </h2>
+                <p className="mt-2 text-white/55">
                   Clean, ready-to-use teaching files for Kinder to Grade 6.
                 </p>
               </div>
 
               <a
                 href="/cart"
-                className="rounded-2xl bg-violet-600 px-5 py-3 font-bold text-white shadow-lg shadow-violet-200 hover:bg-violet-700"
+                className="rounded-2xl px-5 py-3 font-bold text-white transition hover:scale-[1.02]"
+                style={{
+                  background: "linear-gradient(135deg, #7c3aed, #ec4899)",
+                  boxShadow: "0 18px 36px rgba(124,58,237,0.25)",
+                }}
               >
                 Go to Cart
               </a>
             </div>
 
             {loadingProducts ? (
-              <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/60 p-12 text-center text-slate-500 backdrop-blur">
+              <div className="rounded-[28px] border border-dashed border-white/15 bg-white/[0.04] p-12 text-center text-white/60 backdrop-blur">
                 Loading products...
               </div>
             ) : loadError ? (
-              <div className="rounded-[28px] border border-red-200 bg-red-50 p-12 text-center text-red-600">
+              <div className="rounded-[28px] border border-red-400/20 bg-red-500/10 p-12 text-center text-red-200">
                 Failed to load products: {loadError}
               </div>
             ) : (
               <>
-                <div className="mb-6 rounded-3xl border border-white/50 bg-white/70 p-5 shadow-sm backdrop-blur-xl">
-                  <h3 className="text-2xl font-black">
-                    {selectedQuarter ? selectedQuarter : "All Quarters"}
-                    {" / "}
+                <div className="mb-6 rounded-3xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl">
+                  <h3 className="text-2xl font-black text-white">
+                    {selectedQuarter ? selectedQuarter : "All Quarters"}{" "}
+                    <span className="text-white/35">/</span>{" "}
                     {selectedGrade ? selectedGrade : "All Grades"}
                   </h3>
-                  <p className="mt-1 text-slate-500">
+                  <p className="mt-1 text-white/55">
                     {selectedQuarter || selectedGrade
                       ? "Products inside the selected folder"
                       : "Showing all available products"}
@@ -730,7 +754,7 @@ export default function Home() {
                 </div>
 
                 {filteredProducts.length === 0 ? (
-                  <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/60 p-12 text-center text-slate-500 backdrop-blur">
+                  <div className="rounded-[28px] border border-dashed border-white/15 bg-white/[0.04] p-12 text-center text-white/60 backdrop-blur">
                     No products found.
                   </div>
                 ) : (
@@ -738,7 +762,7 @@ export default function Home() {
                     {filteredProducts.map((product) => (
                       <div
                         key={product.id}
-                        className="group relative overflow-hidden rounded-[30px] border border-white/60 bg-white/80 shadow-[0_16px_40px_rgba(15,23,42,0.07)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-2 hover:border-violet-200/80 hover:shadow-[0_24px_70px_rgba(139,92,246,0.22)]"
+                        className="group relative overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.06] shadow-[0_16px_40px_rgba(0,0,0,0.18)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-3 hover:scale-[1.02] hover:border-violet-300/20 hover:shadow-[0_30px_80px_rgba(139,92,246,0.28)]"
                       >
                         <div className="pointer-events-none absolute inset-0 opacity-0 transition duration-300 group-hover:opacity-100">
                           <div className="absolute inset-0 rounded-[30px] bg-gradient-to-br from-violet-400/10 via-fuchsia-300/5 to-cyan-300/10" />
@@ -756,15 +780,15 @@ export default function Home() {
                                 className="h-60 w-full object-cover transition duration-500 group-hover:scale-105"
                               />
                             ) : (
-                              <div className="flex h-60 w-full items-center justify-center bg-slate-100 text-slate-400">
+                              <div className="flex h-60 w-full items-center justify-center bg-slate-800 text-slate-400">
                                 No image
                               </div>
                             )}
 
-                            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-900/25 to-transparent" />
+                            <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950/55 to-transparent" />
 
                             <div className="absolute right-4 top-4 flex flex-col items-end gap-2">
-                              <div className="rounded-full bg-violet-600 px-3 py-1 text-xs font-bold text-white shadow">
+                              <div className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-900 shadow">
                                 {product.grade || "No grade"}
                               </div>
 
@@ -778,42 +802,45 @@ export default function Home() {
 
                           <div className="p-5">
                             <div className="mb-2 flex items-start justify-between gap-3">
-                              <h4 className="text-2xl font-black leading-tight text-slate-900">
+                              <h4 className="text-2xl font-black leading-tight text-white">
                                 {product.title}
                               </h4>
                             </div>
 
                             {product.description && (
-                              <p className="mb-4 line-clamp-2 text-sm leading-6 text-slate-500">
+                              <p className="mb-4 line-clamp-2 text-sm leading-6 text-white/55">
                                 {product.description}
                               </p>
                             )}
 
                             <div className="mb-4 flex flex-wrap items-center gap-2">
-                              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                              <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs font-bold text-white/70">
                                 {product.likes || 0} likes
                               </span>
-                              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                              <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-100">
                                 {product.sold || 0} sold
+                              </span>
+                              <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs font-bold text-white/70">
+                                {product.quarter || "No quarter"}
                               </span>
                             </div>
 
                             <div className="flex items-center justify-between">
-                              <span className="text-3xl font-black text-slate-900">
+                              <span className="text-3xl font-black text-white">
                                 ₱{product.price}
                               </span>
-                              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
+                              <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs font-bold text-white/70">
                                 View Details
                               </span>
                             </div>
                           </div>
                         </button>
 
-                        <div className="relative border-t border-slate-100 px-5 pb-5 pt-4">
+                        <div className="relative border-t border-white/10 px-5 pb-5 pt-4">
                           <div className="mb-5 flex items-center gap-3">
                             <button
                               onClick={() => toggleLike(product.id)}
-                              className="group/heart flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm transition-all duration-200 hover:scale-110 hover:shadow-md active:scale-95"
+                              className="group/heart flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/8 transition-all duration-200 hover:scale-110 hover:bg-white/12 active:scale-95"
                               aria-label="Like product"
                             >
                               <svg
@@ -821,7 +848,7 @@ export default function Home() {
                                 className={`h-6 w-6 transition-all duration-200 ${
                                   hasLiked(product.id)
                                     ? "fill-pink-500 stroke-pink-500"
-                                    : "fill-transparent stroke-slate-400 group-hover/heart:stroke-pink-500"
+                                    : "fill-transparent stroke-white/55 group-hover/heart:stroke-pink-500"
                                 } ${animatingHeart === product.id ? "scale-125" : ""}`}
                                 strokeWidth="2"
                               >
@@ -829,7 +856,7 @@ export default function Home() {
                               </svg>
                             </button>
 
-                            <span className="text-sm font-semibold text-slate-500">
+                            <span className="text-sm font-semibold text-white/55">
                               {product.likes || 0}
                             </span>
                           </div>
@@ -840,7 +867,7 @@ export default function Home() {
                                 onClick={() => addToCart(product)}
                                 className={`rounded-2xl px-4 py-2 font-bold text-white transition ${
                                   isInCart(product.id)
-                                    ? "bg-slate-400"
+                                    ? "bg-slate-500"
                                     : "bg-amber-500 hover:bg-amber-600"
                                 }`}
                               >
@@ -858,7 +885,7 @@ export default function Home() {
                             ) : (
                               <button
                                 onClick={() => buyNow(product)}
-                                className="rounded-2xl bg-slate-900 px-4 py-2 font-bold text-white hover:bg-slate-800"
+                                className="rounded-2xl bg-white px-4 py-2 font-bold text-slate-900 transition hover:bg-slate-100"
                               >
                                 Buy Now
                               </button>
@@ -877,22 +904,22 @@ export default function Home() {
 
       {selectedProduct && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-md"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/78 px-4 py-6 backdrop-blur-md"
           style={{ animation: "modalFadeIn 0.22s ease-out" }}
           onClick={() => setSelectedProduct(null)}
         >
           <div
-            className="relative w-full max-w-5xl overflow-hidden rounded-[32px] border border-white/15 bg-white/10 shadow-[0_30px_120px_rgba(0,0,0,0.45)] backdrop-blur-2xl"
+            className="relative w-full max-w-5xl overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.06] shadow-[0_30px_120px_rgba(0,0,0,0.45)] backdrop-blur-2xl"
             style={{ animation: "modalScaleIn 0.28s cubic-bezier(0.22, 1, 0.36, 1)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-white/10 to-white/5" />
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/[0.04] to-white/[0.02]" />
             <div className="absolute -top-20 right-0 h-60 w-60 rounded-full bg-fuchsia-400/20 blur-3xl" />
             <div className="absolute -bottom-20 left-0 h-60 w-60 rounded-full bg-cyan-400/20 blur-3xl" />
 
             <button
               onClick={() => setSelectedProduct(null)}
-              className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur transition hover:bg-white/20"
+              className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/8 text-white transition hover:bg-white/15"
               aria-label="Close modal"
             >
               ✕
@@ -900,15 +927,15 @@ export default function Home() {
 
             <div className="relative grid max-h-[90vh] overflow-y-auto lg:grid-cols-[1.05fr_0.95fr]">
               <div className="p-4 md:p-6">
-                <div className="overflow-hidden rounded-[28px] border border-white/15 bg-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
+                <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white/8 shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
                   {selectedProduct.imageUrl ? (
                     <img
                       src={selectedProduct.imageUrl}
                       alt={selectedProduct.title}
-                      className="h-[260px] w-full object-cover md:h-[380px]"
+                      className="h-[260px] w-full object-cover md:h-[420px]"
                     />
                   ) : (
-                    <div className="flex h-[260px] w-full items-center justify-center bg-slate-200 text-slate-500 md:h-[380px]">
+                    <div className="flex h-[260px] w-full items-center justify-center bg-slate-800 text-slate-400 md:h-[420px]">
                       No image
                     </div>
                   )}
@@ -917,10 +944,10 @@ export default function Home() {
 
               <div className="relative flex flex-col p-6 md:p-8">
                 <div className="mb-5 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-white/80">
+                  <span className="rounded-full border border-white/10 bg-white/8 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-white/75">
                     {selectedProduct.quarter || "No quarter"}
                   </span>
-                  <span className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-emerald-100">
+                  <span className="rounded-full border border-emerald-300/10 bg-emerald-400/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-emerald-100">
                     {selectedProduct.grade || "No grade"}
                   </span>
                 </div>
@@ -937,14 +964,14 @@ export default function Home() {
                   {selectedProduct.title}
                 </h2>
 
-                <p className="mt-5 text-base leading-8 text-white/80">
+                <p className="mt-5 text-base leading-8 text-white/70">
                   {selectedProduct.description || "No description available for this product yet."}
                 </p>
 
                 <div className="mt-6 flex flex-wrap items-center gap-3">
                   <button
                     onClick={() => toggleLike(selectedProduct.id)}
-                    className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-white/10 backdrop-blur transition hover:scale-110 hover:bg-white/15"
+                    className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/8 transition hover:scale-110 hover:bg-white/12"
                     aria-label="Like product"
                   >
                     <svg
@@ -960,19 +987,19 @@ export default function Home() {
                     </svg>
                   </button>
 
-                  <div className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white/80">
+                  <div className="rounded-full border border-white/10 bg-white/8 px-4 py-2 text-sm font-semibold text-white/75">
                     {selectedProduct.likes || 0} likes
                   </div>
 
-                  <div className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-4 py-2 text-sm font-semibold text-emerald-100">
+                  <div className="rounded-full border border-emerald-300/10 bg-emerald-400/10 px-4 py-2 text-sm font-semibold text-emerald-100">
                     {selectedProduct.sold || 0} sold
                   </div>
                 </div>
 
-                <div className="mt-8 rounded-[28px] border border-white/15 bg-white/10 p-5 backdrop-blur-xl">
+                <div className="mt-8 rounded-[28px] border border-white/10 bg-white/[0.05] p-5 backdrop-blur-xl">
                   <div className="flex items-end justify-between gap-4">
                     <div>
-                      <p className="text-sm font-semibold text-white/60">Price</p>
+                      <p className="text-sm font-semibold text-white/55">Price</p>
                       <p className="text-4xl font-black text-white">
                         ₱{selectedProduct.price}
                       </p>
@@ -995,7 +1022,7 @@ export default function Home() {
                         onClick={() => addToCart(selectedProduct)}
                         className={`rounded-2xl px-5 py-3 font-bold text-white transition ${
                           isInCart(selectedProduct.id)
-                            ? "bg-slate-400"
+                            ? "bg-slate-500"
                             : "bg-amber-500 hover:bg-amber-600"
                         }`}
                       >
@@ -1021,7 +1048,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="mt-5 rounded-[24px] border border-white/10 bg-black/10 p-4 text-sm leading-7 text-white/65">
+                <div className="mt-5 rounded-[24px] border border-white/10 bg-black/10 p-4 text-sm leading-7 text-white/60">
                   Payment will continue on the checkout page.
                 </div>
               </div>
@@ -1029,6 +1056,43 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      <style jsx global>{`
+        @keyframes modalFadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes modalScaleIn {
+          from {
+            opacity: 0;
+            transform: translateY(12px) scale(0.97);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes cardFloatIn {
+          from {
+            opacity: 0;
+            transform: translateY(16px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        html {
+          scroll-behavior: smooth;
+        }
+      `}</style>
     </>
   )
 }

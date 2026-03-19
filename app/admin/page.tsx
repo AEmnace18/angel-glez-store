@@ -160,25 +160,43 @@ export default function AdminPage() {
   const uploadProductFileToR2 = async (selectedFile: File) => {
     setUploadProgress(10)
 
-    const formData = new FormData()
-    formData.append("file", selectedFile)
-
-    const response = await fetch("/api/admin/r2-upload-url", {
+    const res = await fetch("/api/admin/r2-upload-url", {
       method: "POST",
-      body: formData,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        fileName: selectedFile.name,
+        contentType: selectedFile.type || "application/octet-stream",
+      }),
     })
 
-    const data = await response.json()
+    const data = await res.json()
 
-    if (!response.ok) {
-      throw new Error(data?.error || "Upload failed")
+    if (!res.ok) {
+      throw new Error(data?.error || "Failed to get upload URL")
+    }
+
+    setUploadProgress(30)
+
+    const uploadRes = await fetch(data.uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": selectedFile.type || "application/octet-stream",
+      },
+      body: selectedFile,
+    })
+
+    if (!uploadRes.ok) {
+      const text = await uploadRes.text()
+      throw new Error(text || "Upload to R2 failed")
     }
 
     setUploadProgress(100)
 
     return {
-      key: data.fileName as string,
-      url: data.fileName as string,
+      key: data.objectKey as string,
+      url: data.objectKey as string,
     }
   }
 
