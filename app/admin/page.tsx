@@ -5,6 +5,7 @@ import toast from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
 
 const ADMIN_SESSION_KEY = "angel-glez-admin-auth"
+const MAX_THUMBNAIL_SIZE = 10 * 1024 * 1024
 
 type ProductItem = {
   id: number
@@ -35,6 +36,7 @@ export default function AdminPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [currentFileName, setCurrentFileName] = useState("")
   const [loading, setLoading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const imageInputRef = useRef<HTMLInputElement | null>(null)
@@ -124,35 +126,77 @@ export default function AdminPage() {
     setImagePreview(null)
     setCurrentFileName("")
     setEditingProductId(null)
+    setUploadProgress(0)
 
     if (fileInputRef.current) fileInputRef.current.value = ""
     if (imageInputRef.current) imageInputRef.current.value = ""
   }
 
-  const uploadToSupabaseStorage = async (
-    selectedFile: File,
-    bucket: "product-files" | "product-thumbnails"
-  ) => {
-    const fileExt = selectedFile.name.split(".").pop()
+  const uploadThumbnailToSupabase = async (selectedFile: File) => {
     const cleanName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, "_")
-    const filePath = `${bucket}/${Date.now()}-${Math.random()
+    const filePath = `product-thumbnails/${Date.now()}-${Math.random()
       .toString(36)
       .slice(2)}-${cleanName}`
 
     const { error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, selectedFile)
+      .from("product-thumbnails")
+      .upload(filePath, selectedFile, {
+        upsert: false,
+        contentType: selectedFile.type || "image/jpeg",
+      })
 
     if (uploadError) {
       throw uploadError
     }
 
-    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath)
+    const { data } = supabase.storage.from("product-thumbnails").getPublicUrl(filePath)
 
     return {
       path: filePath,
       url: data.publicUrl,
-      ext: fileExt,
+    }
+  }
+
+  const uploadProductFileToR2 = async (selectedFile: File) => {
+    setUploadProgress(5)
+
+    const response = await fetch("/api/admin/r2-upload-url", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        fileName: selectedFile.name,
+        contentType: selectedFile.type || "application/octet-stream",
+      }),
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data?.error || "Failed to create upload URL")
+    }
+
+    setUploadProgress(20)
+
+    const uploadResponse = await fetch(data.uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": selectedFile.type || "application/octet-stream",
+      },
+      body: selectedFile,
+    })
+
+    if (!uploadResponse.ok) {
+      const text = await uploadResponse.text()
+      throw new Error(text || "R2 upload failed")
+    }
+
+    setUploadProgress(100)
+
+    return {
+      key: data.objectKey as string,
+      url: data.publicUrl as string,
     }
   }
 
@@ -174,8 +218,14 @@ export default function AdminPage() {
       return
     }
 
+    if (image && image.size > MAX_THUMBNAIL_SIZE) {
+      showError("Thumbnail image must be 10 MB or below")
+      return
+    }
+
     try {
       setLoading(true)
+      setUploadProgress(0)
 
       if (editingProductId) {
         const existingProduct = products.find((p) => p.id === editingProductId)
@@ -190,13 +240,13 @@ export default function AdminPage() {
         let updatedImageUrl = existingProduct.imageUrl
 
         if (file) {
-          const uploadedProductFile = await uploadToSupabaseStorage(file, "product-files")
+          const uploadedProductFile = await uploadProductFileToR2(file)
           updatedFileUrl = uploadedProductFile.url
           updatedFileName = file.name
         }
 
         if (image) {
-          const uploadedThumbnail = await uploadToSupabaseStorage(image, "product-thumbnails")
+          const uploadedThumbnail = await uploadThumbnailToSupabase(image)
           updatedImageUrl = uploadedThumbnail.url
         }
 
@@ -226,15 +276,8 @@ export default function AdminPage() {
         return
       }
 
-      const uploadedThumbnail = await uploadToSupabaseStorage(
-        image as File,
-        "product-thumbnails"
-      )
-
-      const uploadedProductFile = await uploadToSupabaseStorage(
-        file as File,
-        "product-files"
-      )
+      const uploadedThumbnail = await uploadThumbnailToSupabase(image as File)
+      const uploadedProductFile = await uploadProductFileToR2(file as File)
 
       const { error } = await supabase.from("products").insert({
         title,
@@ -260,7 +303,9 @@ export default function AdminPage() {
       resetForm()
     } catch (error) {
       console.error(error)
-      showError(editingProductId ? "Update failed" : "Upload failed")
+      const message =
+        error instanceof Error ? error.message : editingProductId ? "Update failed" : "Upload failed"
+      showError(message)
     } finally {
       setLoading(false)
     }
@@ -277,6 +322,7 @@ export default function AdminPage() {
     setCurrentFileName(product.fileName)
     setFile(null)
     setImage(null)
+    setUploadProgress(0)
 
     if (fileInputRef.current) fileInputRef.current.value = ""
     if (imageInputRef.current) imageInputRef.current.value = ""
@@ -394,7 +440,7 @@ export default function AdminPage() {
                     Price
                   </label>
                   <input
-                    placeholder="₱149"
+                    placeholder="149"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
@@ -466,7 +512,7 @@ export default function AdminPage() {
                     <p className="mt-1 text-sm text-slate-500">
                       {editingProductId
                         ? "Leave this unchanged if you want to keep the current file."
-                        : "Upload a Word, PowerPoint, ZIP, or RAR file for your product."}
+                        : "Large files now upload to Cloudflare R2."}
                     </p>
                   </div>
 
@@ -511,7 +557,7 @@ export default function AdminPage() {
                     <p className="mt-1 text-sm text-slate-500">
                       {editingProductId
                         ? "Leave this unchanged if you want to keep the current thumbnail."
-                        : "Use a clear preview image for the product card."}
+                        : "Thumbnail still uploads to Supabase."}
                     </p>
                   </div>
 
@@ -520,6 +566,15 @@ export default function AdminPage() {
                   </span>
                 </button>
               </div>
+
+              {loading && uploadProgress > 0 && (
+                <div className="overflow-hidden rounded-2xl bg-slate-100">
+                  <div
+                    className="h-3 bg-gradient-to-r from-violet-600 to-fuchsia-500 transition-all"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+              )}
 
               <button
                 type="submit"
@@ -586,7 +641,7 @@ export default function AdminPage() {
                   {description || "Your product description will appear here."}
                 </p>
 
-                <p className="mt-3 text-sm text-slate-500">
+                <p className="mt-3 line-clamp-1 text-sm text-slate-500">
                   {file ? file.name : currentFileName || "No product file selected yet"}
                 </p>
 
