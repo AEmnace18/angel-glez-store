@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react"
 import toast from "react-hot-toast"
+import { supabase } from "@/lib/supabase"
 
-const STORAGE_KEY = "angel-glez-products"
 const CART_KEY = "angel-glez-cart"
 
 type Product = {
@@ -13,21 +13,54 @@ type Product = {
   quarter: string
   grade: string
   fileName: string
-  fileDataUrl: string
+  fileUrl: string
   imageUrl: string
   likes?: number
+  sold?: number
 }
 
 export default function CartPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [cartIds, setCartIds] = useState<number[]>([])
+  const [loadingProducts, setLoadingProducts] = useState(true)
 
   useEffect(() => {
-    const savedProducts = localStorage.getItem(STORAGE_KEY)
     const savedCart = localStorage.getItem(CART_KEY)
-
-    if (savedProducts) setProducts(JSON.parse(savedProducts))
     if (savedCart) setCartIds(JSON.parse(savedCart))
+
+    const loadProducts = async () => {
+      const { data, error } = await supabase.from("products").select("*")
+
+      if (error) {
+        toast.error("Failed to load cart products", {
+          style: {
+            borderRadius: "14px",
+            background: "#0f172a",
+            color: "#fff",
+          },
+        })
+        setLoadingProducts(false)
+        return
+      }
+
+      const mappedProducts: Product[] = (data || []).map((item: any) => ({
+        id: Number(item.id),
+        title: item.title || "Untitled Product",
+        price: Number(item.price || 0),
+        quarter: item.quarter || "",
+        grade: item.grade || "",
+        fileName: item.file_name || "",
+        fileUrl: item.file_url || "",
+        imageUrl: item.image_url || "",
+        likes: Number(item.likes || 0),
+        sold: Number(item.sold || 0),
+      }))
+
+      setProducts(mappedProducts)
+      setLoadingProducts(false)
+    }
+
+    loadProducts()
   }, [])
 
   const cartProducts = useMemo(() => {
@@ -44,6 +77,19 @@ export default function CartPage() {
     localStorage.setItem(CART_KEY, JSON.stringify(updated))
 
     toast.success("Removed from cart", {
+      style: {
+        borderRadius: "14px",
+        background: "#0f172a",
+        color: "#fff",
+      },
+    })
+  }
+
+  const clearCart = () => {
+    setCartIds([])
+    localStorage.setItem(CART_KEY, JSON.stringify([]))
+
+    toast.success("Cart cleared", {
       style: {
         borderRadius: "14px",
         background: "#0f172a",
@@ -75,7 +121,11 @@ export default function CartPage() {
           </div>
         </div>
 
-        {cartProducts.length === 0 ? (
+        {loadingProducts ? (
+          <div className="rounded-[28px] bg-white p-10 text-center shadow-sm">
+            <p className="text-lg text-slate-500">Loading cart...</p>
+          </div>
+        ) : cartProducts.length === 0 ? (
           <div className="rounded-[28px] bg-white p-10 text-center shadow-sm">
             <p className="text-lg text-slate-500">Your cart is empty.</p>
           </div>
@@ -143,12 +193,21 @@ export default function CartPage() {
                 <span className="text-3xl font-black">₱{total}</span>
               </div>
 
-              <a
-                href="/checkout"
-                className="block w-full rounded-2xl bg-emerald-600 py-4 text-center text-lg font-bold text-white hover:bg-emerald-700"
-              >
-                Proceed to GCash Checkout
-              </a>
+              <div className="space-y-3">
+                <a
+                  href="/checkout"
+                  className="block w-full rounded-2xl bg-emerald-600 py-4 text-center text-lg font-bold text-white hover:bg-emerald-700"
+                >
+                  Proceed to GCash Checkout
+                </a>
+
+                <button
+                  onClick={clearCart}
+                  className="block w-full rounded-2xl border border-slate-300 py-4 text-center text-lg font-bold text-slate-700 hover:bg-slate-100"
+                >
+                  Clear Cart
+                </button>
+              </div>
 
               <p className="mt-4 text-center text-sm text-slate-500">
                 Continue to payment page.
