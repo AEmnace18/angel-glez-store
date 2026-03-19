@@ -2,10 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react"
 import toast from "react-hot-toast"
+import { supabase } from "@/lib/supabase"
 
-const STORAGE_KEY = "angel-glez-products"
 const CART_KEY = "angel-glez-cart"
-const PAYMENT_SUBMISSIONS_KEY = "angel-glez-payment-submissions"
 
 type Product = {
   id: number
@@ -14,7 +13,7 @@ type Product = {
   quarter: string
   grade: string
   fileName: string
-  fileDataUrl: string
+  fileUrl?: string
   imageUrl: string
   likes?: number
 }
@@ -23,16 +22,48 @@ export default function CheckoutPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [cartIds, setCartIds] = useState<number[]>([])
   const [buyerName, setBuyerName] = useState("")
-  const [buyerGcash, setBuyerGcash] = useState("")
-  const [reference, setReference] = useState("")
+  const [buyerEmail, setBuyerEmail] = useState("")
   const [selectedQR, setSelectedQR] = useState(1)
+  const [proofFile, setProofFile] = useState<File | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [loadingProducts, setLoadingProducts] = useState(true)
 
   useEffect(() => {
-    const savedProducts = localStorage.getItem(STORAGE_KEY)
     const savedCart = localStorage.getItem(CART_KEY)
-
-    if (savedProducts) setProducts(JSON.parse(savedProducts))
     if (savedCart) setCartIds(JSON.parse(savedCart))
+
+    const loadProducts = async () => {
+      const { data, error } = await supabase.from("products").select("*")
+
+      if (error) {
+        toast.error("Failed to load products", {
+          style: {
+            borderRadius: "14px",
+            background: "#0f172a",
+            color: "#fff",
+          },
+        })
+        setLoadingProducts(false)
+        return
+      }
+
+      const mappedProducts: Product[] = (data || []).map((item: any) => ({
+        id: Number(item.id),
+        title: item.title || "Untitled Product",
+        price: Number(item.price || 0),
+        quarter: item.quarter || "",
+        grade: item.grade || "",
+        fileName: item.file_name || "",
+        fileUrl: item.file_url || "",
+        imageUrl: item.image_url || "",
+        likes: Number(item.likes || 0),
+      }))
+
+      setProducts(mappedProducts)
+      setLoadingProducts(false)
+    }
+
+    loadProducts()
   }, [])
 
   const cartProducts = useMemo(() => {
@@ -43,9 +74,9 @@ export default function CheckoutPage() {
     return cartProducts.reduce((sum, product) => sum + Number(product.price), 0)
   }, [cartProducts])
 
-  const confirmPayment = () => {
-    if (!buyerName || !buyerGcash || !reference) {
-      toast.error("Please complete all payment details.", {
+  const confirmPayment = async () => {
+    if (!buyerName.trim() || !buyerEmail.trim()) {
+      toast.error("Please enter your name and email.", {
         style: {
           borderRadius: "14px",
           background: "#0f172a",
@@ -55,46 +86,115 @@ export default function CheckoutPage() {
       return
     }
 
-    const existing = localStorage.getItem(PAYMENT_SUBMISSIONS_KEY)
-    const submissions = existing ? JSON.parse(existing) : []
-
-    const newSubmission = {
-      id: Date.now(),
-      buyerName,
-      buyerGcash,
-      reference,
-      total,
-      selectedQR,
-      submittedAt: new Date().toLocaleString(),
-      status: "Pending",
-      items: cartProducts.map((product) => ({
-        id: product.id,
-        title: product.title,
-        price: product.price,
-        grade: product.grade,
-        quarter: product.quarter,
-        fileName: product.fileName,
-        imageUrl: product.imageUrl,
-      })),
+    if (!proofFile) {
+      toast.error("Please upload proof of payment.", {
+        style: {
+          borderRadius: "14px",
+          background: "#0f172a",
+          color: "#fff",
+        },
+      })
+      return
     }
 
-    submissions.unshift(newSubmission)
-    localStorage.setItem(PAYMENT_SUBMISSIONS_KEY, JSON.stringify(submissions))
+    if (proofFile.size > 1024 * 1024) {
+      toast.error("Proof image must be under 1MB.", {
+        style: {
+          borderRadius: "14px",
+          background: "#0f172a",
+          color: "#fff",
+        },
+      })
+      return
+    }
 
-    localStorage.setItem(CART_KEY, JSON.stringify([]))
-    setCartIds([])
+    if (cartProducts.length === 0) {
+      toast.error("No items in checkout.", {
+        style: {
+          borderRadius: "14px",
+          background: "#0f172a",
+          color: "#fff",
+        },
+      })
+      return
+    }
 
-    toast.success("Payment submitted. Please wait for verification.", {
-      style: {
-        borderRadius: "14px",
-        background: "#0f172a",
-        color: "#fff",
-      },
-    })
+    try {
+      setSubmitting(true)
 
-    setTimeout(() => {
-      window.location.href = "/"
-    }, 1200)
+      const fileExt = proofFile.name.split(".").pop()
+      const filePath = `proofs/${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2)}.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from("payment-proofs")
+        .upload(filePath, proofFile)
+
+      if (uploadError) {
+        toast.error("Failed to upload proof.", {
+          style: {
+            borderRadius: "14px",
+            background: "#0f172a",
+            color: "#fff",
+          },
+        })
+        setSubmitting(false)
+        return
+      }
+
+      const purchaseRows = cartProducts.map((product) => ({
+        product_id: product.id,
+        buyer_name: buyerName,
+        buyer_email: buyerEmail,
+        proof_path: filePath,
+        status: "pending",
+      }))
+
+      const { error: insertError } = await supabase
+        .from("purchases")
+        .insert(purchaseRows)
+
+      if (insertError) {
+        toast.error("Failed to save payment.", {
+          style: {
+            borderRadius: "14px",
+            background: "#0f172a",
+            color: "#fff",
+          },
+        })
+        setSubmitting(false)
+        return
+      }
+
+      localStorage.setItem(CART_KEY, JSON.stringify([]))
+      setCartIds([])
+      setBuyerName("")
+      setBuyerEmail("")
+      setProofFile(null)
+
+      toast.success("Payment submitted. Please wait for verification.", {
+        style: {
+          borderRadius: "14px",
+          background: "#0f172a",
+          color: "#fff",
+        },
+      })
+
+      setTimeout(() => {
+        window.location.href = "/"
+      }, 1200)
+    } catch {
+      toast.error("Something went wrong.", {
+        style: {
+          borderRadius: "14px",
+          background: "#0f172a",
+          color: "#fff",
+        },
+      })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const qrImage =
@@ -123,7 +223,11 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        {cartProducts.length === 0 ? (
+        {loadingProducts ? (
+          <div className="rounded-[28px] bg-white p-10 text-center shadow-sm">
+            <p className="text-lg text-slate-500">Loading checkout...</p>
+          </div>
+        ) : cartProducts.length === 0 ? (
           <div className="rounded-[28px] bg-white p-10 text-center shadow-sm">
             <p className="text-lg text-slate-500">No items in checkout.</p>
           </div>
@@ -177,8 +281,9 @@ export default function CheckoutPage() {
                   1. Choose a QR option below. <br />
                   2. Scan the QR code using GCash. <br />
                   3. Send the exact total amount. <br />
-                  4. Enter your name, GCash number, and reference number. <br />
-                  5. Click <span className="font-bold">I Paid</span>.
+                  4. Enter your name and email. <br />
+                  5. Upload your proof of payment. <br />
+                  6. Click <span className="font-bold">Submit Payment</span>.
                 </p>
               </div>
 
@@ -228,24 +333,32 @@ export default function CheckoutPage() {
                 />
 
                 <input
-                  value={buyerGcash}
-                  onChange={(e) => setBuyerGcash(e.target.value)}
-                  placeholder="Your GCash Number"
+                  type="email"
+                  value={buyerEmail}
+                  onChange={(e) => setBuyerEmail(e.target.value)}
+                  placeholder="Your Email"
                   className="w-full rounded-2xl border border-slate-300 p-4 outline-none"
                 />
 
-                <input
-                  value={reference}
-                  onChange={(e) => setReference(e.target.value)}
-                  placeholder="GCash Reference Number"
-                  className="w-full rounded-2xl border border-slate-300 p-4 outline-none"
-                />
+                <div className="rounded-2xl border border-slate-300 p-4">
+                  <p className="mb-3 text-sm font-semibold text-slate-500">
+                    Upload proof of payment
+                  </p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                    className="block w-full text-sm"
+                  />
+                  <p className="mt-2 text-xs text-slate-400">Max file size: 1MB</p>
+                </div>
 
                 <button
                   onClick={confirmPayment}
-                  className="w-full rounded-2xl bg-emerald-600 py-4 text-lg font-bold text-white hover:bg-emerald-700"
+                  disabled={submitting}
+                  className="w-full rounded-2xl bg-emerald-600 py-4 text-lg font-bold text-white hover:bg-emerald-700 disabled:opacity-60"
                 >
-                  I Paid
+                  {submitting ? "Submitting..." : "Submit Payment"}
                 </button>
               </div>
 

@@ -67,23 +67,13 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-  const loadProducts = async () => {
-    setLoadingProducts(true)
-    setLoadError(null)
+    const loadProducts = async () => {
+      setLoadingProducts(true)
+      setLoadError(null)
 
-    console.log("SUPABASE URL:", process.env.NEXT_PUBLIC_SUPABASE_URL)
-    console.log("HAS ANON KEY:", !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
-
-    const { data, error } = await supabase.from("products").select("*")
-
-      console.log("Supabase data:", data)
+      const { data, error } = await supabase.from("products").select("*")
 
       if (error) {
-        console.log("Supabase raw error:", error)
-        console.log("Error message:", error.message)
-        console.log("Error details:", error.details)
-        console.log("Error hint:", error.hint)
-        console.log("Error code:", error.code)
         setLoadError(error.message || "Failed to load products.")
         setLoadingProducts(false)
         return
@@ -102,8 +92,6 @@ export default function Home() {
         likes: Number(item.likes || 0),
         sold: Number(item.sold || 0),
       }))
-
-      console.log("Mapped products:", mappedProducts)
 
       setProducts(mappedProducts)
       setLoadingProducts(false)
@@ -213,38 +201,7 @@ export default function Home() {
   }
 
   const buyNow = (product: Product) => {
-    const existing = localStorage.getItem(PURCHASES_KEY)
-    const purchaseIds = existing ? JSON.parse(existing) : []
-
-    const alreadyPurchased = purchaseIds.includes(product.id)
-
-    if (!alreadyPurchased) {
-      const updatedPurchases = [...purchaseIds, product.id]
-      localStorage.setItem(PURCHASES_KEY, JSON.stringify(updatedPurchases))
-      setPurchases(updatedPurchases)
-
-      const updatedProducts = products.map((item) => {
-        if (item.id !== product.id) return item
-        return {
-          ...item,
-          sold: (item.sold || 0) + 1,
-        }
-      })
-
-      setProducts(updatedProducts)
-    }
-
-    const updatedCart = cart.filter((id) => id !== product.id)
-    setCart(updatedCart)
-    localStorage.setItem(CART_KEY, JSON.stringify(updatedCart))
-
-    toast.success("Payment successful! Download unlocked.", {
-      style: {
-        borderRadius: "14px",
-        background: "#0f172a",
-        color: "#fff",
-      },
-    })
+    window.location.href = `/checkout?productId=${product.id}`
   }
 
   const downloadProduct = (product: Product) => {
@@ -1061,7 +1018,7 @@ export default function Home() {
                 </div>
 
                 <div className="mt-5 rounded-[24px] border border-white/10 bg-black/10 p-4 text-sm leading-7 text-white/65">
-                  Instant access after purchase. Your file will be unlocked for download right away.
+                  Payment will continue on the checkout page.
                 </div>
               </div>
             </div>
