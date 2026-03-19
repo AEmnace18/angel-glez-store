@@ -157,7 +157,7 @@ export default function CheckoutPage() {
 
       if (insertError) {
         console.log("Insert error:", insertError)
-        toast.error(insertError?.message || "Failed to save payment.", {
+        toast.error(insertError.message || "Failed to save payment.", {
           style: {
             borderRadius: "14px",
             background: "#0f172a",
@@ -168,7 +168,9 @@ export default function CheckoutPage() {
         return
       }
 
+      localStorage.setItem("angel-glez-buyer-email", buyerEmail)
       localStorage.setItem(CART_KEY, JSON.stringify([]))
+
       setCartIds([])
       setBuyerName("")
       setBuyerEmail("")
@@ -183,7 +185,7 @@ export default function CheckoutPage() {
       })
 
       setTimeout(() => {
-        window.location.href = "/"
+        window.location.href = "/purchases"
       }, 1200)
     } catch {
       toast.error("Something went wrong.", {
