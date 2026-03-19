@@ -158,45 +158,27 @@ export default function AdminPage() {
   }
 
   const uploadProductFileToR2 = async (selectedFile: File) => {
-    setUploadProgress(5)
+    setUploadProgress(10)
+
+    const formData = new FormData()
+    formData.append("file", selectedFile)
 
     const response = await fetch("/api/admin/r2-upload-url", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        fileName: selectedFile.name,
-        contentType: selectedFile.type || "application/octet-stream",
-      }),
+      body: formData,
     })
 
     const data = await response.json()
 
     if (!response.ok) {
-      throw new Error(data?.error || "Failed to create upload URL")
-    }
-
-    setUploadProgress(20)
-
-    const uploadResponse = await fetch(data.uploadUrl, {
-      method: "PUT",
-      headers: {
-        "Content-Type": selectedFile.type || "application/octet-stream",
-      },
-      body: selectedFile,
-    })
-
-    if (!uploadResponse.ok) {
-      const text = await uploadResponse.text()
-      throw new Error(text || "R2 upload failed")
+      throw new Error(data?.error || "Upload failed")
     }
 
     setUploadProgress(100)
 
     return {
-      key: data.objectKey as string,
-      url: data.publicUrl as string,
+      key: data.fileName as string,
+      url: data.fileName as string,
     }
   }
 
@@ -241,7 +223,7 @@ export default function AdminPage() {
 
         if (file) {
           const uploadedProductFile = await uploadProductFileToR2(file)
-          updatedFileUrl = uploadedProductFile.url
+          updatedFileUrl = uploadedProductFile.key
           updatedFileName = file.name
         }
 
@@ -286,7 +268,7 @@ export default function AdminPage() {
         quarter,
         grade,
         file_name: (file as File).name,
-        file_url: uploadedProductFile.url,
+        file_url: uploadedProductFile.key,
         image_url: uploadedThumbnail.url,
         likes: 0,
         sold: 0,
@@ -304,7 +286,11 @@ export default function AdminPage() {
     } catch (error) {
       console.error(error)
       const message =
-        error instanceof Error ? error.message : editingProductId ? "Update failed" : "Upload failed"
+        error instanceof Error
+          ? error.message
+          : editingProductId
+            ? "Update failed"
+            : "Upload failed"
       showError(message)
     } finally {
       setLoading(false)

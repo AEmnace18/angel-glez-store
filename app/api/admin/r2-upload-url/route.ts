@@ -19,8 +19,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 })
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer())
+    console.log("Uploading file:", file.name, file.type)
 
+    const buffer = Buffer.from(await file.arrayBuffer())
     const fileName = `${Date.now()}-${file.name}`
 
     await r2.send(
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
         Bucket: process.env.R2_BUCKET_NAME,
         Key: fileName,
         Body: buffer,
-        ContentType: file.type,
+        ContentType: file.type || "application/octet-stream",
       })
     )
 
