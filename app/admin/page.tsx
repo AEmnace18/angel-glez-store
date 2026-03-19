@@ -378,10 +378,10 @@ export default function AdminPage() {
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
                   >
                     <option value="">Select Quarter</option>
-                    <option>Quarter 1</option>
-                    <option>Quarter 2</option>
-                    <option>Quarter 3</option>
-                    <option>Quarter 4</option>
+                    <option value="Q1">Q1</option>
+                    <option value="Q2">Q2</option>
+                    <option value="Q3">Q3</option>
+                    <option value="Q4">Q4</option>
                   </select>
                 </div>
               </div>
