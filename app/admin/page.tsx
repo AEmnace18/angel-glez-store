@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react"
 import toast from "react-hot-toast"
-import { uploadToBlob } from "@/lib/blob-upload"
 import { supabase } from "@/lib/supabase"
 
 const ADMIN_SESSION_KEY = "angel-glez-admin-auth"
@@ -130,6 +129,33 @@ export default function AdminPage() {
     if (imageInputRef.current) imageInputRef.current.value = ""
   }
 
+  const uploadToSupabaseStorage = async (
+    selectedFile: File,
+    bucket: "product-files" | "product-thumbnails"
+  ) => {
+    const fileExt = selectedFile.name.split(".").pop()
+    const cleanName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, "_")
+    const filePath = `${bucket}/${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}-${cleanName}`
+
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, selectedFile)
+
+    if (uploadError) {
+      throw uploadError
+    }
+
+    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath)
+
+    return {
+      path: filePath,
+      url: data.publicUrl,
+      ext: fileExt,
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -164,13 +190,13 @@ export default function AdminPage() {
         let updatedImageUrl = existingProduct.imageUrl
 
         if (file) {
-          const uploadedProductFile = await uploadToBlob(file, "products")
+          const uploadedProductFile = await uploadToSupabaseStorage(file, "product-files")
           updatedFileUrl = uploadedProductFile.url
           updatedFileName = file.name
         }
 
         if (image) {
-          const uploadedThumbnail = await uploadToBlob(image, "thumbnails")
+          const uploadedThumbnail = await uploadToSupabaseStorage(image, "product-thumbnails")
           updatedImageUrl = uploadedThumbnail.url
         }
 
@@ -200,8 +226,15 @@ export default function AdminPage() {
         return
       }
 
-      const uploadedThumbnail = await uploadToBlob(image as File, "thumbnails")
-      const uploadedProductFile = await uploadToBlob(file as File, "products")
+      const uploadedThumbnail = await uploadToSupabaseStorage(
+        image as File,
+        "product-thumbnails"
+      )
+
+      const uploadedProductFile = await uploadToSupabaseStorage(
+        file as File,
+        "product-files"
+      )
 
       const { error } = await supabase.from("products").insert({
         title,
@@ -373,16 +406,16 @@ export default function AdminPage() {
                     Quarter
                   </label>
                   <select
-  value={quarter}
-  onChange={(e) => setQuarter(e.target.value)}
-  className="w-full rounded-xl border p-3"
->
-  <option value="">Select Quarter</option>
-  <option value="Q1">Q1</option>
-  <option value="Q2">Q2</option>
-  <option value="Q3">Q3</option>
-  <option value="Q4">Q4</option>
-</select>
+                    value={quarter}
+                    onChange={(e) => setQuarter(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
+                  >
+                    <option value="">Select Quarter</option>
+                    <option value="Q1">Q1</option>
+                    <option value="Q2">Q2</option>
+                    <option value="Q3">Q3</option>
+                    <option value="Q4">Q4</option>
+                  </select>
                 </div>
               </div>
 
@@ -391,19 +424,19 @@ export default function AdminPage() {
                   Grade Level
                 </label>
                 <select
-  value={grade}
-  onChange={(e) => setGrade(e.target.value)}
-  className="w-full rounded-xl border p-3"
->
-  <option value="">Select Grade</option>
-  <option value="Kinder">Kinder</option>
-  <option value="Grade 1">Grade 1</option>
-  <option value="Grade 2">Grade 2</option>
-  <option value="Grade 3">Grade 3</option>
-  <option value="Grade 4">Grade 4</option>
-  <option value="Grade 5">Grade 5</option>
-  <option value="Grade 6">Grade 6</option>
-</select>
+                  value={grade}
+                  onChange={(e) => setGrade(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
+                >
+                  <option value="">Select Grade</option>
+                  <option value="Kinder">Kinder</option>
+                  <option value="Grade 1">Grade 1</option>
+                  <option value="Grade 2">Grade 2</option>
+                  <option value="Grade 3">Grade 3</option>
+                  <option value="Grade 4">Grade 4</option>
+                  <option value="Grade 5">Grade 5</option>
+                  <option value="Grade 6">Grade 6</option>
+                </select>
               </div>
 
               <div>
