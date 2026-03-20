@@ -39,6 +39,11 @@ type Product = {
   sold?: number
 }
 
+type ReviewDraft = {
+  rating: number
+  count: number
+}
+
 const toastStyle = {
   borderRadius: "14px",
   background: "#0f172a",
@@ -216,6 +221,9 @@ export default function Home() {
   const [modalGrade, setModalGrade] = useState<string | null>(null)
   const [folderPulse, setFolderPulse] = useState<string | null>(null)
   const [folderWhoosh, setFolderWhoosh] = useState(false)
+  const [productRatings, setProductRatings] = useState<Record<number, ReviewDraft>>({})
+  const [reviewingProductId, setReviewingProductId] = useState<number | null>(null)
+  const [hoveredStars, setHoveredStars] = useState(0)
 
   const triggerFolderFeel = (key: string) => {
     setFolderPulse(key)
@@ -254,6 +262,15 @@ export default function Home() {
     if (savedPurchases) setPurchases(JSON.parse(savedPurchases))
     if (savedCart) setCart(JSON.parse(savedCart))
     if (savedLikes) setLikedIds(JSON.parse(savedLikes))
+  }, [])
+
+  useEffect(() => {
+    const savedRatings = localStorage.getItem("angel-glez-ratings")
+    if (savedRatings) {
+      try {
+        setProductRatings(JSON.parse(savedRatings))
+      } catch {}
+    }
   }, [])
 
   useEffect(() => {
@@ -350,6 +367,43 @@ export default function Home() {
 
   const getGradeCount = (quarterLabel: string, gradeLabel: string) =>
     products.filter((p) => p.quarter === quarterLabel && p.grade === gradeLabel).length
+
+  const getRatingMeta = (productId: number) => {
+    const saved = productRatings[productId]
+    if (saved) return saved
+
+    const baseRating = 4.5 + ((productId % 5) * 0.1)
+    return {
+      rating: Number(Math.min(5, baseRating).toFixed(1)),
+      count: 8 + (productId % 11),
+    }
+  }
+
+  const submitReview = (productId: number, star: number) => {
+    if (!star) {
+      toast.error("Pick a star rating first.", { style: toastStyle })
+      return
+    }
+
+    const current = getRatingMeta(productId)
+    const totalScore = current.rating * current.count + star
+    const nextCount = current.count + 1
+    const nextRating = Number((totalScore / nextCount).toFixed(1))
+
+    const updatedRatings = {
+      ...productRatings,
+      [productId]: {
+        rating: nextRating,
+        count: nextCount,
+      },
+    }
+
+    setProductRatings(updatedRatings)
+    localStorage.setItem("angel-glez-ratings", JSON.stringify(updatedRatings))
+    setReviewingProductId(null)
+    setHoveredStars(0)
+    toast.success("Review added", { style: toastStyle })
+  }
 
   const addToCart = (product: Product) => {
     if (cart.includes(product.id)) {
@@ -1284,6 +1338,39 @@ export default function Home() {
                   </div>
                 </div>
 
+                <div className="mt-5 rounded-[24px] border border-violet-100 bg-[linear-gradient(180deg,#fcfbff_0%,#f7f3ff_100%)] p-4 shadow-[0_12px_30px_rgba(124,58,237,0.08)]">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-500">Teacher Rating</p>
+                      <div className="mt-2 flex items-center gap-3">
+                        <div className="flex items-center gap-1 text-xl">
+                          {Array.from({ length: 5 }).map((_, index) => (
+                            <span
+                              key={index}
+                              className={index < Math.round(getRatingMeta(selectedProduct.id).rating) ? "text-amber-400" : "text-slate-300"}
+                            >
+                              ★
+                            </span>
+                          ))}
+                        </div>
+                        <div className="text-sm font-bold text-slate-700">
+                          {getRatingMeta(selectedProduct.id).rating.toFixed(1)} ({getRatingMeta(selectedProduct.id).count} reviews)
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setReviewingProductId(selectedProduct.id)
+                        setHoveredStars(0)
+                      }}
+                      className="rounded-2xl border border-violet-200 bg-white px-4 py-2.5 text-sm font-bold text-violet-700 transition hover:-translate-y-0.5 hover:bg-violet-50"
+                    >
+                      Write a Review
+                    </button>
+                  </div>
+                </div>
+
                 <div className="mt-8 rounded-[28px] border border-slate-200 bg-slate-50 p-5">
                   <div className="flex items-end justify-between gap-4">
                     <div>
@@ -1341,6 +1428,60 @@ export default function Home() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {reviewingProductId && (
+        <div
+          className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-md"
+          onClick={() => {
+            setReviewingProductId(null)
+            setHoveredStars(0)
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-[30px] border border-white bg-white p-6 shadow-[0_30px_120px_rgba(15,23,42,0.24)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-500">Write a Review</p>
+                <h3 className="mt-1 text-2xl font-black text-slate-900">Rate this product</h3>
+              </div>
+              <button
+                onClick={() => {
+                  setReviewingProductId(null)
+                  setHoveredStars(0)
+                }}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-6 flex items-center justify-center gap-2">
+              {Array.from({ length: 5 }).map((_, index) => {
+                const star = index + 1
+                return (
+                  <button
+                    key={star}
+                    type="button"
+                    onMouseEnter={() => setHoveredStars(star)}
+                    onMouseLeave={() => setHoveredStars(0)}
+                    onClick={() => submitReview(reviewingProductId, star)}
+                    className={`text-4xl transition hover:scale-110 ${star <= hoveredStars ? "text-amber-400" : "text-slate-300"}`}
+                    aria-label={`Rate ${star} star${star > 1 ? "s" : ""}`}
+                  >
+                    ★
+                  </button>
+                )
+              })}
+            </div>
+
+            <p className="mt-4 text-center text-sm leading-7 text-slate-500">
+              Tap a star from 1 to 5 to leave your rating.
+            </p>
           </div>
         </div>
       )}
