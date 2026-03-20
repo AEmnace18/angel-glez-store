@@ -437,10 +437,10 @@ export default function Home() {
 
   return (
     <>
-      <main className={`relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f1ebe1_0%,#e8e0d5_16%,#e4dfeb_48%,#eceff5_100%)] text-slate-900 transition duration-300 ${modalQuarter ? "scale-[0.985] blur-[2px]" : ""}`}>
+      <main className={`relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#ebe3d7_0%,#ddd2c3_16%,#d8d2e2_48%,#e4e8f0_100%)] text-slate-900 transition duration-300 ${modalQuarter ? "scale-[0.985] blur-[2px]" : ""}`}>
         <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_10%,rgba(79,70,229,0.16),transparent_24%),radial-gradient(circle_at_84%_14%,rgba(217,119,6,0.14),transparent_22%),radial-gradient(circle_at_78%_70%,rgba(100,116,139,0.16),transparent_28%),linear-gradient(180deg,rgba(244,239,231,0.98),rgba(230,223,213,0.96))]" />
-          <div className="absolute inset-0 opacity-[0.32]" style={{ backgroundImage: "linear-gradient(rgba(15,23,42,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.06) 1px, transparent 1px)", backgroundSize: "46px 46px", maskImage: "linear-gradient(180deg, rgba(0,0,0,0.95), transparent 88%)", WebkitMaskImage: "linear-gradient(180deg, rgba(0,0,0,0.95), transparent 88%)" }} />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_10%,rgba(79,70,229,0.18),transparent_24%),radial-gradient(circle_at_84%_14%,rgba(217,119,6,0.16),transparent_22%),radial-gradient(circle_at_78%_70%,rgba(100,116,139,0.18),transparent_28%),linear-gradient(180deg,rgba(236,230,220,0.98),rgba(219,210,197,0.97))]" />
+          <div className="absolute inset-0 opacity-[0.36]" style={{ backgroundImage: "linear-gradient(rgba(15,23,42,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.07) 1px, transparent 1px)", backgroundSize: "46px 46px", maskImage: "linear-gradient(180deg, rgba(0,0,0,0.95), transparent 88%)", WebkitMaskImage: "linear-gradient(180deg, rgba(0,0,0,0.95), transparent 88%)" }} />
           <div className="pointer-events-none absolute -left-24 top-10 h-80 w-80 rounded-full bg-indigo-500/16 blur-3xl" />
           <div className="pointer-events-none absolute right-[-80px] top-8 h-96 w-96 rounded-full bg-amber-400/16 blur-3xl" />
           <div className="pointer-events-none absolute left-[6%] top-[16%] h-56 w-56 rounded-full bg-white/30 blur-3xl" />
@@ -450,7 +450,7 @@ export default function Home() {
           <div className="pointer-events-none absolute right-[8%] top-[18%] h-[320px] w-[320px] rounded-[40px] border border-white/30 bg-[linear-gradient(135deg,rgba(99,102,241,0.10),rgba(255,255,255,0.04))] shadow-[0_30px_90px_rgba(79,70,229,0.08)]" style={{ transform: "rotate(9deg)" }} />
 
           <div className="relative">
-            <header className="sticky top-0 z-50 px-3 pt-3 md:px-6 md:pt-5">
+            <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 md:px-6 md:pt-5">
               <div className="mx-auto max-w-7xl">
                 <div className="rounded-[28px] border border-white/70 bg-[rgba(255,252,248,0.82)] px-3 py-3 shadow-[0_20px_60px_rgba(15,23,42,0.10)] backdrop-blur-2xl md:px-5 md:py-4">
                   <div className="flex items-center justify-between gap-3">
@@ -566,7 +566,7 @@ export default function Home() {
               </div>
             </header>
 
-            <div className="mx-auto max-w-7xl px-4 pb-20 pt-12 md:px-6 md:pb-20 md:pt-16">
+            <div className="mx-auto max-w-7xl px-4 pb-20 pt-36 md:px-6 md:pb-20 md:pt-40">
               <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
                 <div>
                   <div className="mb-6 flex flex-wrap items-center gap-3">
@@ -583,10 +583,10 @@ export default function Home() {
                   <h1 className="max-w-4xl text-5xl font-black leading-[0.98] tracking-tight text-slate-900 md:text-7xl">
                     <span className="hero-line block">Ready-to-use COT files</span>
                     <span className="hero-line hero-accent-text block">
-                      organized by quarter
+                      for every Quarter
                     </span>
                     <span className="hero-line hero-muted-line block text-4xl md:text-5xl">
-                      then refined by grade level
+                      and Grade level
                     </span>
                   </h1>
 
