@@ -1346,7 +1346,7 @@ export default function Home() {
           opacity: 0;
           will-change: transform, opacity, filter;
           animation-name: heroLineReveal;
-          animation-duration: 10s;
+          animation-duration: 5s;
           animation-timing-function: cubic-bezier(.22,1,.36,1);
           animation-iteration-count: infinite;
         }
@@ -1370,7 +1370,7 @@ export default function Home() {
           background-clip: text;
           color: transparent;
           animation:
-            heroLineReveal 10s cubic-bezier(.22,1,.36,1) infinite,
+            heroLineReveal 5s cubic-bezier(.22,1,.36,1) infinite,
             heroGradientShift 7s linear infinite;
         }
 
