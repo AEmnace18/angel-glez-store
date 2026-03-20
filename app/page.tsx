@@ -437,11 +437,15 @@ export default function Home() {
 
   return (
     <>
-      <main className={`min-h-screen bg-[linear-gradient(180deg,#fcfbf8_0%,#f6f3ee_18%,#f5f4f8_48%,#f8f8fb_100%)] text-slate-900 transition duration-300 ${modalQuarter ? "scale-[0.985] blur-[2px]" : ""}`}>
+      <main className={`relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#f6f3ee_0%,#efe9df_18%,#ece8ee_50%,#f2f3f7_100%)] text-slate-900 transition duration-300 ${modalQuarter ? "scale-[0.985] blur-[2px]" : ""}`}>
         <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_10%,rgba(99,102,241,0.12),transparent_26%),radial-gradient(circle_at_84%_14%,rgba(245,158,11,0.10),transparent_24%),radial-gradient(circle_at_78%_70%,rgba(148,163,184,0.12),transparent_28%),linear-gradient(180deg,rgba(255,252,247,0.96),rgba(246,244,240,0.92))]" />
-          <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-indigo-300/10 blur-3xl" />
-          <div className="absolute right-[-80px] top-8 h-80 w-80 rounded-full bg-amber-300/10 blur-3xl" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_10%,rgba(79,70,229,0.10),transparent_24%),radial-gradient(circle_at_84%_14%,rgba(217,119,6,0.08),transparent_22%),radial-gradient(circle_at_78%_70%,rgba(100,116,139,0.10),transparent_26%),linear-gradient(180deg,rgba(248,245,239,0.96),rgba(238,233,225,0.94))]" />
+          <div className="absolute inset-0 opacity-[0.16]" style={{ backgroundImage: "linear-gradient(rgba(15,23,42,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.06) 1px, transparent 1px)", backgroundSize: "44px 44px", maskImage: "linear-gradient(180deg, rgba(0,0,0,0.75), transparent 82%)", WebkitMaskImage: "linear-gradient(180deg, rgba(0,0,0,0.75), transparent 82%)" }} />
+          <div className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-indigo-400/10 blur-3xl" />
+          <div className="pointer-events-none absolute right-[-80px] top-8 h-80 w-80 rounded-full bg-amber-400/10 blur-3xl" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.46),transparent_62%)]" />
+          <div className="pointer-events-none absolute left-[8%] top-[18%] h-40 w-40 rounded-full border border-white/35 bg-white/10 blur-2xl" />
+          <div className="pointer-events-none absolute right-[12%] top-[24%] h-56 w-56 rounded-full border border-slate-300/30 bg-slate-200/10 blur-3xl" />
 
           <div className="relative">
             <header className="sticky top-0 z-50 px-3 pt-3 md:px-6 md:pt-5">
