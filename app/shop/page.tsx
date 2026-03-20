@@ -355,7 +355,7 @@ export default function ShopPage() {
                     </h1>
 
                     <p className="mt-4 max-w-2xl text-base leading-8 text-slate-600 md:text-lg">
-                      Explore every uploaded product in one premium catalog. Filter by quarter, grade level, and find the right classroom-ready material faster.
+                      Save time with organized, classroom-ready teaching materials made for Kinder to Grade 6 teachers.
                     </p>
 
                     <div className="mt-8 grid gap-3 md:grid-cols-[1.4fr_repeat(3,minmax(0,1fr))]">
