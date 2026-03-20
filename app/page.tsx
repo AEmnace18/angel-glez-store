@@ -575,13 +575,11 @@ export default function Home() {
                   </div>
 
                   <h1 className="max-w-4xl text-5xl font-black leading-[0.98] tracking-tight text-slate-900 md:text-7xl">
-                    Ready-to-use COT files
-                    <br />
-                    <span className="bg-gradient-to-r from-violet-600 via-fuchsia-500 to-sky-500 bg-clip-text text-transparent">
+                    <span className="hero-line block">Ready-to-use COT files</span>
+                    <span className="hero-line hero-gradient-text block">
                       organized by quarter
                     </span>
-                    <br />
-                    <span className="text-4xl text-slate-500 md:text-5xl">
+                    <span className="hero-line hero-muted-line block text-4xl md:text-5xl">
                       then refined by grade level
                     </span>
                   </h1>
@@ -1304,6 +1302,61 @@ export default function Home() {
             opacity: 1;
             transform: translateY(0);
           }
+        }
+
+        @keyframes heroLineReveal {
+          from {
+            opacity: 0;
+            transform: translateY(26px);
+            filter: blur(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+            filter: blur(0);
+          }
+        }
+
+        @keyframes heroGradientShift {
+          0% {
+            background-position: 0% center;
+          }
+          100% {
+            background-position: 200% center;
+          }
+        }
+
+        .hero-line {
+          opacity: 0;
+          will-change: transform, opacity, filter;
+          animation: heroLineReveal 0.9s cubic-bezier(.22,1,.36,1) forwards;
+        }
+
+        .hero-line:nth-child(1) {
+          animation-delay: 0.06s;
+        }
+
+        .hero-line:nth-child(2) {
+          animation-delay: 0.22s;
+        }
+
+        .hero-line:nth-child(3) {
+          animation-delay: 0.38s;
+        }
+
+        .hero-gradient-text {
+          background-image: linear-gradient(90deg, #7c3aed, #d946ef, #0ea5e9, #7c3aed);
+          background-size: 220% auto;
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          animation:
+            heroLineReveal 0.9s cubic-bezier(.22,1,.36,1) forwards,
+            heroGradientShift 7s linear infinite;
+        }
+
+        .hero-muted-line {
+          color: rgb(100 116 139);
         }
 
 @keyframes heartPop {
