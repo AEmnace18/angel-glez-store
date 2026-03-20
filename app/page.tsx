@@ -645,9 +645,9 @@ export default function Home() {
                 </div>
 
                 <div className="hidden lg:block">
-                  <div className="relative overflow-hidden rounded-[34px] border border-stone-200/80 bg-[rgba(255,252,248,0.88)] p-5 shadow-[0_30px_90px_rgba(15,23,42,0.12)] backdrop-blur-2xl">
-                    <div className="pointer-events-none absolute left-10 top-8 h-36 w-36 rounded-full bg-violet-300/20 blur-3xl" />
-                    <div className="pointer-events-none absolute right-8 top-10 h-40 w-40 rounded-full bg-amber-300/15 blur-3xl" />
+                  <div className="relative rounded-[34px] border border-stone-200/80 bg-[rgba(255,252,248,0.86)] p-5 shadow-[0_30px_90px_rgba(15,23,42,0.12)] backdrop-blur-2xl">
+                    <div className="pointer-events-none absolute inset-x-10 top-8 h-44 rounded-[32px] bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.14),transparent_65%)] blur-2xl" />
+                    <div className="pointer-events-none absolute right-8 top-14 h-40 w-40 rounded-full bg-fuchsia-300/18 blur-3xl" />
 
                     <div className="relative rounded-[30px] border border-stone-200 bg-[linear-gradient(180deg,#fffdfa_0%,#f7f4ef_100%)] p-5 shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
                       <div className="mb-5 flex items-center justify-between">
@@ -655,96 +655,107 @@ export default function Home() {
                           <p className="text-sm font-semibold text-slate-500">Featured Preview</p>
                           <h3 className="text-2xl font-black text-slate-900">Teacher Marketplace</h3>
                         </div>
-                        <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50/90 px-3 py-2 text-sm font-bold text-violet-700 shadow-sm">
                           <span className="h-2.5 w-2.5 rounded-full bg-violet-500 animate-pulse" />
                           <span>Live</span>
                         </div>
                       </div>
 
                       {currentFeatured ? (
-                        <div className="rounded-[26px] bg-[linear-gradient(180deg,#faf7f2_0%,#f3f4f7_100%)] p-4">
+                        <div className="rounded-[26px] bg-[linear-gradient(180deg,#f7f4ef_0%,#f3f4f7_100%)] p-4">
                           <div
                             key={currentFeatured.id}
-                            className="grid gap-4 rounded-[28px] border border-stone-200 bg-white p-4 shadow-[0_20px_48px_rgba(15,23,42,0.12)]"
+                            onClick={() => setSelectedProduct(currentFeatured)}
+                            className="group cursor-pointer overflow-hidden rounded-[30px] border border-stone-200/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,247,242,0.96))] shadow-[0_22px_58px_rgba(15,23,42,0.12)] transition duration-300 hover:-translate-y-1.5 hover:shadow-[0_30px_90px_rgba(15,23,42,0.18)]"
                             style={{ animation: "cardFloatIn 0.7s ease" }}
                           >
-                            <div className="relative overflow-hidden rounded-[24px] border border-stone-200 bg-white">
-                              {currentFeatured.imageUrl ? (
-                                <img
-                                  src={currentFeatured.imageUrl}
-                                  alt={currentFeatured.title}
-                                  className="h-[240px] w-full object-cover"
-                                />
-                              ) : (
-                                <div className="flex h-[240px] w-full items-center justify-center bg-slate-100 text-slate-400">
-                                  No image
-                                </div>
-                              )}
+                            <div className="relative overflow-hidden p-4 pb-3">
+                              <div className="pointer-events-none absolute inset-x-10 top-3 h-24 rounded-full bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.10),transparent_60%)] blur-2xl" />
 
-                              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-950/20 to-transparent" />
+                              <div className="relative overflow-hidden rounded-[26px] border border-white/70 bg-white shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+                                {currentFeatured.imageUrl ? (
+                                  <img
+                                    src={currentFeatured.imageUrl}
+                                    alt={currentFeatured.title}
+                                    className="h-[290px] w-full object-cover transition duration-700 group-hover:scale-[1.045]"
+                                  />
+                                ) : (
+                                  <div className="flex h-[290px] w-full items-center justify-center bg-slate-100 text-slate-400">
+                                    No image
+                                  </div>
+                                )}
 
-                              <div className="absolute left-4 top-4 flex flex-wrap items-center gap-2">
-                                <span className="rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-700 shadow-sm">
+                                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_34%)]" />
+                                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-slate-950/70 via-slate-950/22 to-transparent" />
+
+                                <div className="absolute left-5 top-5 rounded-full border border-white/70 bg-white/92 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-700 shadow-sm backdrop-blur">
                                   Featured Pick
-                                </span>
-                                <span className="rounded-full bg-violet-600 px-3 py-1.5 text-xs font-bold text-white shadow">
-                                  {currentFeatured.grade || "No grade"}
-                                </span>
-                              </div>
-
-                              {featuredProducts.length > 1 && (
-                                <div className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 items-center justify-between px-4">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setFeaturedIndex((prev) =>
-                                        prev === 0 ? featuredProducts.length - 1 : prev - 1
-                                      )
-                                    }
-                                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/85 text-slate-700 shadow-[0_12px_24px_rgba(15,23,42,0.10)] backdrop-blur transition hover:scale-105 hover:bg-white"
-                                    aria-label="Previous featured product"
-                                  >
-                                    ←
-                                  </button>
-
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setFeaturedIndex((prev) =>
-                                        prev === featuredProducts.length - 1 ? 0 : prev + 1
-                                      )
-                                    }
-                                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/85 text-slate-700 shadow-[0_12px_24px_rgba(15,23,42,0.10)] backdrop-blur transition hover:scale-105 hover:bg-white"
-                                    aria-label="Next featured product"
-                                  >
-                                    →
-                                  </button>
                                 </div>
-                              )}
+
+                                <div className="absolute right-5 top-5 rounded-full bg-violet-600 px-3 py-1.5 text-xs font-bold text-white shadow-lg shadow-violet-500/20">
+                                  {currentFeatured.grade || "No grade"}
+                                </div>
+
+                                <div className="absolute inset-x-5 bottom-5 flex items-end justify-between gap-4">
+                                  <div className="min-w-0">
+                                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                                      <span className="rounded-full bg-white/16 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-white backdrop-blur">
+                                        {currentFeatured.quarter || "No quarter"}
+                                      </span>
+                                      {isBestSeller(currentFeatured) && (
+                                        <span className="rounded-full bg-amber-400 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-950">
+                                          Best Seller
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <p className="line-clamp-2 max-w-[320px] text-[1.7rem] font-black leading-tight text-white drop-shadow-[0_10px_26px_rgba(15,23,42,0.34)]">
+                                      {currentFeatured.title}
+                                    </p>
+                                  </div>
+
+                                  <div className="shrink-0 rounded-full border border-white/25 bg-white/95 px-4 py-2.5 text-lg font-black text-slate-900 shadow-xl">
+                                    ₱{currentFeatured.price}
+                                  </div>
+                                </div>
+
+                                {featuredProducts.length > 1 && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setFeaturedIndex((prev) =>
+                                          prev === 0 ? featuredProducts.length - 1 : prev - 1
+                                        )
+                                      }}
+                                      className="absolute left-5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-white/72 text-slate-700 shadow-[0_16px_30px_rgba(15,23,42,0.12)] backdrop-blur-md transition hover:scale-105 hover:bg-white hover:shadow-[0_20px_34px_rgba(124,58,237,0.18)]"
+                                      aria-label="Previous featured product"
+                                    >
+                                      ←
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setFeaturedIndex((prev) =>
+                                          prev === featuredProducts.length - 1 ? 0 : prev + 1
+                                        )
+                                      }}
+                                      className="absolute right-5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/60 bg-white/72 text-slate-700 shadow-[0_16px_30px_rgba(15,23,42,0.12)] backdrop-blur-md transition hover:scale-105 hover:bg-white hover:shadow-[0_20px_34px_rgba(124,58,237,0.18)]"
+                                      aria-label="Next featured product"
+                                    >
+                                      →
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </div>
 
-                            <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
-                              <div className="min-w-0">
-                                <div className="mb-2 flex flex-wrap items-center gap-2">
-                                  <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-slate-600">
-                                    {currentFeatured.quarter || "No quarter"}
-                                  </span>
-                                  {isBestSeller(currentFeatured) && (
-                                    <span className="rounded-full bg-amber-400 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-950">
-                                      Best Seller
-                                    </span>
-                                  )}
-                                </div>
-
-                                <p className="line-clamp-2 text-[1.45rem] font-black leading-tight text-slate-900">
-                                  {currentFeatured.title}
-                                </p>
-
-                                <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
-                                  {currentFeatured.description || "Clean and ready-to-use classroom material."}
-                                </p>
-
-                                <div className="mt-4 flex flex-wrap items-center gap-2">
+                            <div className="px-5 pb-5">
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex flex-wrap items-center gap-2">
                                   <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
                                     {currentFeatured.likes || 0} likes
                                   </span>
@@ -752,61 +763,36 @@ export default function Home() {
                                     {currentFeatured.sold || 0} sold
                                   </span>
                                 </div>
-                              </div>
 
-                              <div className="flex min-w-[170px] flex-col gap-3 lg:items-end">
-                                <div className="rounded-[20px] bg-slate-900 px-4 py-3 text-center text-lg font-black text-white shadow-sm">
-                                  ₱{currentFeatured.price}
+                                <div className="rounded-full bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700">
+                                  Tap to preview
                                 </div>
-
-                                <button
-                                  type="button"
-                                  onClick={() => setSelectedProduct(currentFeatured)}
-                                  className="w-full rounded-2xl bg-violet-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-violet-700 lg:w-[170px]"
-                                >
-                                  View Details
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => buyNow(currentFeatured)}
-                                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50 lg:w-[170px]"
-                                >
-                                  Buy Now
-                                </button>
                               </div>
+
+                              <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-500">
+                                {currentFeatured.description || "Clean and ready-to-use classroom material."}
+                              </p>
                             </div>
                           </div>
 
                           {featuredProducts.length > 1 && (
                             <>
-                              <div className="mt-4 overflow-hidden rounded-full bg-slate-200">
-                                <div
-                                  key={featuredIndex}
-                                  className="h-1.5 rounded-full bg-violet-600"
-                                  style={{
-                                    width: `${100 / featuredProducts.length}%`,
-                                    transform: `translateX(${featuredIndex * 100}%)`,
-                                    transition: "transform 0.45s ease",
-                                  }}
-                                />
-                              </div>
-
                               <div className="mt-4 grid grid-cols-3 gap-3">
                                 {featuredProducts.slice(0, 3).map((product, index) => {
-                                  const active = featuredIndex === index
+                                  const actualIndex = index
+                                  const active = featuredIndex === actualIndex
 
                                   return (
                                     <button
                                       key={product.id}
-                                      onClick={() => setFeaturedIndex(index)}
-                                      className={`overflow-hidden rounded-[20px] border text-left transition ${
+                                      onClick={() => setFeaturedIndex(actualIndex)}
+                                      className={`flex items-center gap-3 rounded-[22px] border p-3 text-left transition ${
                                         active
-                                          ? "border-violet-300 bg-violet-50 shadow-[0_12px_30px_rgba(124,58,237,0.10)]"
-                                          : "border-stone-200 bg-white hover:-translate-y-0.5 hover:shadow-sm"
+                                          ? "border-violet-300 bg-violet-50 shadow-[0_14px_32px_rgba(124,58,237,0.12)]"
+                                          : "border-stone-200 bg-white hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
                                       }`}
                                     >
-                                      <div className="h-24 overflow-hidden border-b border-stone-200 bg-slate-100">
+                                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[16px] border border-stone-200 bg-slate-100 shadow-sm">
                                         {product.imageUrl ? (
                                           <img src={product.imageUrl} alt={product.title} className="h-full w-full object-cover" />
                                         ) : (
@@ -816,16 +802,33 @@ export default function Home() {
                                         )}
                                       </div>
 
-                                      <div className="p-3">
+                                      <div className="min-w-0">
                                         <p className="line-clamp-1 text-sm font-black text-slate-900">
                                           {product.title}
                                         </p>
-                                        <p className="mt-0.5 text-xs text-slate-500">{product.grade}</p>
-                                        <p className="mt-1 text-sm font-black text-violet-700">₱{product.price}</p>
+                                        <div className="mt-1 flex items-center gap-2">
+                                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                                            {product.grade}
+                                          </span>
+                                        </div>
+                                        <p className="mt-1.5 text-sm font-black text-violet-700">₱{product.price}</p>
                                       </div>
                                     </button>
                                   )
                                 })}
+                              </div>
+
+                              <div className="mt-4 flex items-center justify-center gap-2">
+                                {featuredProducts.map((_, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={() => setFeaturedIndex(index)}
+                                    className={`h-2.5 rounded-full transition-all ${
+                                      featuredIndex === index ? "w-10 bg-violet-600" : "w-2.5 bg-slate-300"
+                                    }`}
+                                    aria-label={`Show featured product ${index + 1}`}
+                                  />
+                                ))}
                               </div>
                             </>
                           )}
@@ -1424,6 +1427,12 @@ export default function Home() {
             opacity: 0;
             transform: translateY(26px);
             filter: blur(8px);
+          }
+        }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+            filter: blur(0);
           }
         }
 
