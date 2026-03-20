@@ -816,11 +816,18 @@ export default function Home() {
           }}
         >
           <div
-            className="relative w-full max-w-6xl overflow-hidden rounded-[34px] border border-white/70 bg-white/82 shadow-[0_36px_120px_rgba(15,23,42,0.22)] backdrop-blur-2xl"
+            className="relative w-full max-w-6xl overflow-hidden rounded-[34px] border border-white/70 bg-white/82 shadow-[0_36px_120px_rgba(15,23,42,0.22)] backdrop-blur-2xl [perspective:1800px]"
             style={{ animation: "folderPanelIn 0.34s cubic-bezier(0.22, 1, 0.36, 1)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="pointer-events-none absolute left-10 right-24 top-0 h-10 rounded-b-[20px] bg-gradient-to-b from-violet-200 to-fuchsia-100 opacity-80" />
+            <div
+              className="pointer-events-none absolute left-10 right-24 top-0 z-10 h-10 rounded-b-[20px] border border-violet-200/70 border-t-0 bg-gradient-to-b from-violet-200 via-fuchsia-100 to-violet-50 opacity-95 shadow-[0_10px_24px_rgba(124,58,237,0.14)]"
+              style={{
+                transformOrigin: "top center",
+                transform: "translateZ(24px)",
+                animation: "folderFlapOpen 0.42s cubic-bezier(0.22, 1, 0.36, 1)",
+              }}
+            />
             <div className="relative flex items-center justify-between border-b border-slate-200/80 bg-white/70 px-5 pb-4 pt-7 md:px-8">
               <div>
                 <div className="flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
@@ -865,7 +872,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="max-h-[78vh] overflow-y-auto px-5 py-5 md:px-8 md:py-7">
+            <div className="max-h-[78vh] overflow-y-auto px-5 py-5 md:px-8 md:py-7" style={{ animation: "folderContentsIn 0.42s ease-out" }}>
               {!modalGrade ? (
                 <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                   {grades.map((grade) => {
@@ -1223,7 +1230,30 @@ export default function Home() {
           }
         }
 
-        @keyframes heartPop {
+        
+        @keyframes folderFlapOpen {
+          from {
+            opacity: 0.5;
+            transform: perspective(1800px) rotateX(-76deg) translateY(-12px) translateZ(24px);
+          }
+          to {
+            opacity: 0.95;
+            transform: perspective(1800px) rotateX(0deg) translateY(0) translateZ(24px);
+          }
+        }
+
+        @keyframes folderContentsIn {
+          from {
+            opacity: 0;
+            transform: translateY(14px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+@keyframes heartPop {
           0% { transform: scale(1) translateY(0) rotate(0deg); filter: drop-shadow(0 0 0 rgba(244,63,94,0)); }
           20% { transform: scale(1.18) translateY(-2px) rotate(-6deg); }
           45% { transform: scale(1.34) translateY(-4px) rotate(6deg); filter: drop-shadow(0 12px 22px rgba(244,63,94,0.28)); }
