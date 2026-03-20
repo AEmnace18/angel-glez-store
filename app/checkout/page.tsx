@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import toast from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
@@ -26,10 +26,9 @@ type Product = {
   likes?: number
 }
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const searchParams = useSearchParams()
   const directProductId = Number(searchParams.get("productId") || 0)
-
   const [products, setProducts] = useState<Product[]>([])
   const [cartIds, setCartIds] = useState<number[]>([])
   const [buyerName, setBuyerName] = useState("")
@@ -147,7 +146,6 @@ export default function CheckoutPage() {
         localStorage.setItem(CART_KEY, JSON.stringify([]))
         setCartIds([])
       }
-
       setBuyerName("")
       setBuyerEmail("")
       setProofFile(null)
@@ -429,3 +427,22 @@ export default function CheckoutPage() {
     </main>
   )
 }
+
+export default function CheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(139,92,246,0.14),_transparent_30%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_55%,#f8fafc_100%)] px-4 py-8 text-slate-900 md:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl">
+            <div className="rounded-[30px] border border-slate-200/70 bg-white/90 p-12 text-center shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+              <p className="text-lg font-semibold text-slate-500">Loading checkout...</p>
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <CheckoutContent />
+    </Suspense>
+  )
+}
+
