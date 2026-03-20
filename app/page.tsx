@@ -925,7 +925,14 @@ export default function Home() {
                       key={product.id}
                       className="group relative overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_24px_70px_rgba(15,23,42,0.14)]"
                     >
-                      <button onClick={() => setSelectedProduct(product)} className="block w-full text-left">
+                      <button
+                        onClick={() => {
+                          setModalQuarter(null)
+                          setModalGrade(null)
+                          setSelectedProduct(product)
+                        }}
+                        className="block w-full text-left"
+                      >
                         <div className="relative overflow-hidden">
                           {product.imageUrl ? (
                             <img
@@ -1048,7 +1055,7 @@ export default function Home() {
       )}
 {selectedProduct && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-md"
+          className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-md"
           style={{ animation: "modalFadeIn 0.22s ease-out" }}
           onClick={() => setSelectedProduct(null)}
         >
