@@ -437,20 +437,20 @@ export default function Home() {
 
   return (
     <>
-      <main className={`min-h-screen bg-[linear-gradient(180deg,#f8fbff_0%,#eef4ff_22%,#f9fbff_48%,#f5f7ff_100%)] text-slate-900 transition duration-300 ${modalQuarter ? "scale-[0.985] blur-[2px]" : ""}`}>
+      <main className={`min-h-screen bg-[linear-gradient(180deg,#fcfbf8_0%,#f6f3ee_18%,#f5f4f8_48%,#f8f8fb_100%)] text-slate-900 transition duration-300 ${modalQuarter ? "scale-[0.985] blur-[2px]" : ""}`}>
         <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_12%,rgba(124,58,237,0.18),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(236,72,153,0.14),transparent_26%),radial-gradient(circle_at_78%_72%,rgba(59,130,246,0.14),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.96),rgba(243,247,255,0.92))]" />
-          <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-violet-400/15 blur-3xl" />
-          <div className="absolute right-[-80px] top-8 h-80 w-80 rounded-full bg-fuchsia-400/15 blur-3xl" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_10%,rgba(99,102,241,0.12),transparent_26%),radial-gradient(circle_at_84%_14%,rgba(245,158,11,0.10),transparent_24%),radial-gradient(circle_at_78%_70%,rgba(148,163,184,0.12),transparent_28%),linear-gradient(180deg,rgba(255,252,247,0.96),rgba(246,244,240,0.92))]" />
+          <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-indigo-300/10 blur-3xl" />
+          <div className="absolute right-[-80px] top-8 h-80 w-80 rounded-full bg-amber-300/10 blur-3xl" />
 
           <div className="relative">
             <header className="sticky top-0 z-50 px-3 pt-3 md:px-6 md:pt-5">
               <div className="mx-auto max-w-7xl">
-                <div className="rounded-[30px] border border-white/70 bg-white/75 px-3 py-3 shadow-[0_20px_60px_rgba(15,23,42,0.12)] backdrop-blur-2xl md:px-5 md:py-4">
+                <div className="rounded-[28px] border border-white/70 bg-[rgba(255,252,248,0.82)] px-3 py-3 shadow-[0_20px_60px_rgba(15,23,42,0.10)] backdrop-blur-2xl md:px-5 md:py-4">
                   <div className="flex items-center justify-between gap-3">
                     <a
                       href="/"
-                      className="group flex min-w-0 items-center gap-3 rounded-[24px] border border-slate-200/70 bg-white/90 px-3 py-2.5 transition duration-300 hover:-translate-y-0.5 hover:bg-white"
+                      className="group flex min-w-0 items-center gap-3 rounded-[22px] border border-stone-200/80 bg-white/90 px-3 py-2.5 transition duration-300 hover:-translate-y-0.5 hover:bg-white"
                     >
                       <div className="relative shrink-0">
                         <div className="absolute inset-0 rounded-2xl bg-violet-300/20 blur-md transition group-hover:bg-violet-300/30" />
@@ -471,28 +471,28 @@ export default function Home() {
                       </div>
                     </a>
 
-                    <nav className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white/90 p-2 md:flex">
+                    <nav className="hidden items-center gap-2 rounded-[22px] border border-stone-200/80 bg-white/88 p-2 md:flex">
                       <a
                         href="#quarters"
-                        className="rounded-full px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                        className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-stone-100 hover:text-slate-900"
                       >
                         Quarters
                       </a>
                       <a
                         href="#marketplace"
-                        className="rounded-full px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                        className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-stone-100 hover:text-slate-900"
                       >
                         Shop
                       </a>
                       <a
                         href="/purchases"
-                        className="rounded-full px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                        className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-stone-100 hover:text-slate-900"
                       >
                         Purchases
                       </a>
                       <a
                         href="/admin-login"
-                        className="rounded-full px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                        className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-stone-100 hover:text-slate-900"
                       >
                         Admin
                       </a>
@@ -501,13 +501,13 @@ export default function Home() {
                     <div className="hidden items-center gap-3 md:flex">
                       <a
                         href="/cart"
-                        className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 shadow-[0_10px_24px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:bg-slate-50"
+                        className="flex items-center gap-2 rounded-[18px] border border-stone-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 shadow-[0_10px_24px_rgba(15,23,42,0.07)] transition hover:-translate-y-0.5 hover:bg-stone-50"
                       >
                         <CartIcon className="h-4 w-4" />
                         <span>Cart {cart.length}</span>
                       </a>
 
-                      <div className="flex items-center gap-2 rounded-2xl border border-pink-200 bg-pink-50 px-5 py-3 text-sm font-bold text-pink-700">
+                      <div className="flex items-center gap-2 rounded-[18px] border border-violet-200 bg-violet-50 px-5 py-3 text-sm font-bold text-violet-700">
                         <HeartIcon className="h-4 w-4" filled />
                         <span>{likedIds.length}</span>
                       </div>
@@ -569,14 +569,14 @@ export default function Home() {
                       alt="Angel Glez COT Logo"
                       className="h-14 w-14 rounded-2xl border border-white object-cover shadow-lg md:h-16 md:w-16"
                     />
-                    <div className="inline-flex rounded-full border border-violet-200 bg-white/90 px-4 py-2 text-sm font-semibold text-violet-700 shadow-sm">
+                    <div className="inline-flex rounded-full border border-indigo-200 bg-white/90 px-4 py-2 text-sm font-semibold text-indigo-700 shadow-sm">
                       Organized folders, secure delivery, classroom-ready files
                     </div>
                   </div>
 
                   <h1 className="max-w-4xl text-5xl font-black leading-[0.98] tracking-tight text-slate-900 md:text-7xl">
                     <span className="hero-line block">Ready-to-use COT files</span>
-                    <span className="hero-line hero-gradient-text block">
+                    <span className="hero-line hero-accent-text block">
                       organized by quarter
                     </span>
                     <span className="hero-line hero-muted-line block text-4xl md:text-5xl">
@@ -595,44 +595,43 @@ export default function Home() {
                   <div className="mt-8 flex flex-wrap gap-4">
                     <a
                       href="#quarters"
-                      className="rounded-2xl px-6 py-3 font-bold text-white transition hover:scale-[1.03]"
+                      className="rounded-[18px] border border-[#1e1b4b] bg-[#0f172a] px-6 py-3 font-bold text-white transition hover:scale-[1.03] hover:bg-[#131c31]"
                       style={{
-                        background: "linear-gradient(135deg, #7c3aed, #ec4899)",
-                        boxShadow: "0 18px 40px rgba(124,58,237,0.26)",
+                        boxShadow: "0 18px 40px rgba(15,23,42,0.18)",
                       }}
                     >
                       Open Folder Library
                     </a>
                     <a
                       href="#marketplace"
-                      className="rounded-2xl border border-slate-200 bg-white px-6 py-3 font-bold text-slate-900 transition hover:bg-slate-50"
+                      className="rounded-[18px] border border-stone-200 bg-white px-6 py-3 font-bold text-slate-900 transition hover:bg-stone-50"
                     >
                       View Collection
                     </a>
                   </div>
 
                   <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-600">
-                    <span className="rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">
+                    <span className="rounded-full border border-stone-200 bg-white px-4 py-2 shadow-sm">
                       Ready-to-edit files
                     </span>
-                    <span className="rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">
+                    <span className="rounded-full border border-stone-200 bg-white px-4 py-2 shadow-sm">
                       Organized for teachers
                     </span>
-                    <span className="rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">
+                    <span className="rounded-full border border-stone-200 bg-white px-4 py-2 shadow-sm">
                       Instant secure download
                     </span>
                   </div>
 
                   <div className="mt-10 grid max-w-2xl gap-4 sm:grid-cols-3">
-                    <div className="rounded-[28px] border border-white bg-white/90 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+                    <div className="rounded-[26px] border border-stone-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,246,242,0.96))] p-5 shadow-[0_18px_44px_rgba(15,23,42,0.07)]">
                       <p className="text-3xl font-black text-slate-900">{products.length}</p>
                       <p className="mt-1 text-sm text-slate-500">Teaching Files</p>
                     </div>
-                    <div className="rounded-[28px] border border-white bg-white/90 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+                    <div className="rounded-[26px] border border-stone-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,246,242,0.96))] p-5 shadow-[0_18px_44px_rgba(15,23,42,0.07)]">
                       <p className="text-3xl font-black text-slate-900">{cart.length}</p>
                       <p className="mt-1 text-sm text-slate-500">Saved in Cart</p>
                     </div>
-                    <div className="rounded-[28px] border border-white bg-white/90 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+                    <div className="rounded-[26px] border border-stone-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,246,242,0.96))] p-5 shadow-[0_18px_44px_rgba(15,23,42,0.07)]">
                       <p className="text-3xl font-black text-slate-900">{likedIds.length}</p>
                       <p className="mt-1 text-sm text-slate-500">Teacher Likes</p>
                     </div>
@@ -640,8 +639,8 @@ export default function Home() {
                 </div>
 
                 <div className="hidden lg:block">
-                  <div className="rounded-[34px] border border-white bg-white/75 p-5 shadow-[0_26px_80px_rgba(15,23,42,0.12)] backdrop-blur-2xl transition duration-300 hover:-translate-y-2">
-                    <div className="rounded-[30px] border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-5 shadow-[0_16px_60px_rgba(15,23,42,0.12)]">
+                  <div className="rounded-[30px] border border-stone-200/80 bg-[rgba(255,252,248,0.84)] p-5 shadow-[0_26px_80px_rgba(15,23,42,0.10)] backdrop-blur-2xl transition duration-300 hover:-translate-y-2">
+                    <div className="rounded-[26px] border border-stone-200 bg-[linear-gradient(180deg,#fffdfa_0%,#f7f4ef_100%)] p-5 shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
                       <div className="mb-5 flex items-center justify-between">
                         <div>
                           <p className="text-sm font-semibold text-slate-500">Featured Preview</p>
@@ -653,10 +652,10 @@ export default function Home() {
                       </div>
 
                       {currentFeatured ? (
-                        <div className="rounded-[28px] bg-slate-50 p-4">
+                        <div className="rounded-[24px] bg-[linear-gradient(180deg,#f7f4ef_0%,#f3f4f7_100%)] p-4">
                           <div
                             key={currentFeatured.id}
-                            className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)]"
+                            className="overflow-hidden rounded-[24px] border border-stone-200 bg-white shadow-[0_18px_42px_rgba(15,23,42,0.10)]"
                             style={{ animation: "cardFloatIn 0.7s ease" }}
                           >
                             <div className="relative overflow-hidden">
@@ -1363,9 +1362,9 @@ export default function Home() {
           animation-delay: 0.38s;
         }
 
-        .hero-gradient-text {
-          background-image: linear-gradient(90deg, #7c3aed, #d946ef, #0ea5e9, #7c3aed);
-          background-size: 220% auto;
+        .hero-accent-text {
+          background-image: linear-gradient(90deg, #1e1b4b, #4338ca, #7c3aed, #1e1b4b);
+          background-size: 200% auto;
           -webkit-background-clip: text;
           background-clip: text;
           color: transparent;
@@ -1376,6 +1375,10 @@ export default function Home() {
 
         .hero-muted-line {
           color: rgb(100 116 139);
+        }
+
+        .premium-grid-fade {
+          background-image: linear-gradient(to bottom, rgba(255,255,255,0.7), rgba(255,255,255,0));
         }
 
 @keyframes heartPop {
