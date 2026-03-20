@@ -485,7 +485,7 @@ export default function Home() {
                         Quarters
                       </a>
                       <a
-                        href="#marketplace"
+                        href="/shop"
                         className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-stone-100 hover:text-slate-900"
                       >
                         Shop
