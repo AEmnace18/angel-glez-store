@@ -1,11 +1,12 @@
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Inter, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "react-hot-toast"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
 })
 
 const geistMono = Geist_Mono({
@@ -26,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.className} ${inter.variable} ${geistMono.variable} antialiased`}
       >
         {children}
         <Toaster position="top-right" />
