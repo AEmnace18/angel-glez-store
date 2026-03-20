@@ -119,8 +119,7 @@ export default function CartPage() {
                 Review your teaching files before checkout
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
-                Your cart now feels more like a premium drawer layout, with a sticky summary panel,
-                cleaner item cards, and faster checkout flow.
+                Review your cart, confirm your files, and proceed to secure checkout.
               </p>
             </div>
 
