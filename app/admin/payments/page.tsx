@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import toast from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
 
-const CART_KEY = "angel-glez-cart"
-const MAX_PROOF_SIZE = 1024 * 1024
+const ADMIN_SESSION_KEY = "angel-glez-admin-auth"
 
 const toastStyle = {
   borderRadius: "14px",
@@ -13,405 +12,469 @@ const toastStyle = {
   color: "#fff",
 }
 
-type Product = {
-  id: number
-  title: string
-  price: number
-  quarter: string
-  grade: string
-  fileName: string
-  fileUrl?: string
-  imageUrl: string
-  likes?: number
+type PaymentSubmission = {
+  id: string
+  buyer_name: string
+  buyer_email: string
+  proof_path: string | null
+  status: "pending" | "approved" | "rejected"
+  created_at: string
+  product_id: number
+  products?: {
+    id: number
+    title: string
+    price: number
+    grade: string
+    quarter: string
+    file_name: string
+    image_url: string
+    sold?: number
+  } | null
 }
 
-export default function CheckoutPage() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [cartIds, setCartIds] = useState<number[]>([])
-  const [buyerName, setBuyerName] = useState("")
-  const [buyerEmail, setBuyerEmail] = useState("")
-  const [selectedQR, setSelectedQR] = useState(1)
-  const [proofFile, setProofFile] = useState<File | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-  const [loadingProducts, setLoadingProducts] = useState(true)
+export default function AdminPaymentsPage() {
+  const [checkedAuth, setCheckedAuth] = useState(false)
+  const [payments, setPayments] = useState<PaymentSubmission[]>([])
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all")
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const savedCart = localStorage.getItem(CART_KEY)
-    if (savedCart) setCartIds(JSON.parse(savedCart))
-
-    const loadProducts = async () => {
-      const { data, error } = await supabase.from("products").select("*")
-
-      if (error) {
-        toast.error("Failed to load products", { style: toastStyle })
-        setLoadingProducts(false)
-        return
-      }
-
-      const mappedProducts: Product[] = (data || []).map((item: any) => ({
-        id: Number(item.id),
-        title: item.title || "Untitled Product",
-        price: Number(item.price || 0),
-        quarter: item.quarter || "",
-        grade: item.grade || "",
-        fileName: item.file_name || "",
-        fileUrl: item.file_url || "",
-        imageUrl: item.image_url || "",
-        likes: Number(item.likes || 0),
-      }))
-
-      setProducts(mappedProducts)
-      setLoadingProducts(false)
+    const isAdmin = localStorage.getItem(ADMIN_SESSION_KEY)
+    if (isAdmin !== "true") {
+      window.location.href = "/admin-login"
+      return
     }
 
-    loadProducts()
+    setCheckedAuth(true)
+    loadPayments()
   }, [])
 
-  const cartProducts = useMemo(() => {
-    return products.filter((product) => cartIds.includes(product.id))
-  }, [products, cartIds])
+  const loadPayments = async () => {
+    setLoading(true)
 
-  const total = useMemo(() => {
-    return cartProducts.reduce((sum, product) => sum + Number(product.price), 0)
-  }, [cartProducts])
+    const { data, error } = await supabase
+      .from("purchases")
+      .select(`
+        *,
+        products (
+          id,
+          title,
+          price,
+          grade,
+          quarter,
+          file_name,
+          image_url,
+          sold
+        )
+      `)
+      .order("created_at", { ascending: false })
 
-  const totalItems = cartProducts.length
-
-  const confirmPayment = async () => {
-    if (!buyerName.trim() || !buyerEmail.trim()) {
-      toast.error("Please enter your name and email.", { style: toastStyle })
+    if (error) {
+      toast.error("Failed to load payments", { style: toastStyle })
+      setLoading(false)
       return
     }
 
-    if (!proofFile) {
-      toast.error("Please upload proof of payment.", { style: toastStyle })
-      return
-    }
-
-    if (proofFile.size > MAX_PROOF_SIZE) {
-      toast.error("Proof image must be under 1MB.", { style: toastStyle })
-      return
-    }
-
-    if (cartProducts.length === 0) {
-      toast.error("No items in checkout.", { style: toastStyle })
-      return
-    }
-
-    try {
-      setSubmitting(true)
-
-      const fileExt = proofFile.name.split(".").pop()
-      const filePath = `proofs/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
-
-      const { error: uploadError } = await supabase.storage
-        .from("payment-proofs")
-        .upload(filePath, proofFile, {
-          contentType: proofFile.type || "image/jpeg",
-          upsert: false,
-        })
-
-      if (uploadError) {
-        toast.error("Failed to upload proof.", { style: toastStyle })
-        setSubmitting(false)
-        return
-      }
-
-      const purchaseRows = cartProducts.map((product) => ({
-        product_id: product.id,
-        buyer_name: buyerName,
-        buyer_email: buyerEmail,
-        proof_path: filePath,
-        status: "pending",
-      }))
-
-      const { error: insertError } = await supabase.from("purchases").insert(purchaseRows)
-
-      if (insertError) {
-        toast.error(insertError.message || "Failed to save payment.", { style: toastStyle })
-        setSubmitting(false)
-        return
-      }
-
-      localStorage.setItem("angel-glez-buyer-email", buyerEmail)
-      localStorage.setItem(CART_KEY, JSON.stringify([]))
-
-      setCartIds([])
-      setBuyerName("")
-      setBuyerEmail("")
-      setProofFile(null)
-
-      toast.success("Payment submitted. Please wait for verification.", {
-        style: toastStyle,
-      })
-
-      setTimeout(() => {
-        window.location.href = "/purchases"
-      }, 1200)
-    } catch {
-      toast.error("Something went wrong.", { style: toastStyle })
-    } finally {
-      setSubmitting(false)
-    }
+    setPayments((data || []) as PaymentSubmission[])
+    setLoading(false)
   }
 
-  const qrImage = selectedQR === 1 ? "/qr1.jpg" : selectedQR === 2 ? "/qr2.jpg" : "/qr3.jpg"
+  const filteredPayments = useMemo(() => {
+    const keyword = search.toLowerCase()
+
+    return payments.filter((payment) => {
+      const matchesKeyword =
+        payment.buyer_name?.toLowerCase().includes(keyword) ||
+        payment.buyer_email?.toLowerCase().includes(keyword) ||
+        payment.status?.toLowerCase().includes(keyword) ||
+        payment.products?.title?.toLowerCase().includes(keyword)
+
+      const matchesStatus = statusFilter === "all" ? true : payment.status === statusFilter
+
+      return matchesKeyword && matchesStatus
+    })
+  }, [payments, search, statusFilter])
+
+  const totals = useMemo(() => {
+    const pending = payments.filter((p) => p.status === "pending")
+    const approved = payments.filter((p) => p.status === "approved")
+    const rejected = payments.filter((p) => p.status === "rejected")
+    const revenue = approved.reduce((sum, p) => sum + Number(p.products?.price || 0), 0)
+
+    const bestProductsMap = new Map<string, { title: string; count: number; revenue: number }>()
+    for (const payment of approved) {
+      const title = payment.products?.title || "Unknown product"
+      const entry = bestProductsMap.get(title) || { title, count: 0, revenue: 0 }
+      entry.count += 1
+      entry.revenue += Number(payment.products?.price || 0)
+      bestProductsMap.set(title, entry)
+    }
+
+    const bestProducts = [...bestProductsMap.values()]
+      .sort((a, b) => b.count - a.count || b.revenue - a.revenue)
+      .slice(0, 5)
+
+    const topGrade = (() => {
+      const grades = new Map<string, number>()
+      for (const payment of approved) {
+        const grade = payment.products?.grade || "-"
+        grades.set(grade, (grades.get(grade) || 0) + 1)
+      }
+      return [...grades.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "-"
+    })()
+
+    const topQuarter = (() => {
+      const quarters = new Map<string, number>()
+      for (const payment of approved) {
+        const quarter = payment.products?.quarter || "-"
+        quarters.set(quarter, (quarters.get(quarter) || 0) + 1)
+      }
+      return [...quarters.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "-"
+    })()
+
+    return {
+      total: payments.length,
+      pending: pending.length,
+      approved: approved.length,
+      rejected: rejected.length,
+      revenue,
+      bestProducts,
+      topGrade,
+      topQuarter,
+    }
+  }, [payments])
+
+  const updateStatus = async (
+    payment: PaymentSubmission,
+    status: "pending" | "approved" | "rejected"
+  ) => {
+    const { error } = await supabase.from("purchases").update({ status }).eq("id", payment.id)
+
+    if (error) {
+      toast.error("Failed to update status", { style: toastStyle })
+      return
+    }
+
+    if (status === "approved") {
+      const currentSold = Number(payment.products?.sold || 0)
+
+      await supabase.from("products").update({ sold: currentSold + 1 }).eq("id", payment.product_id)
+
+      if (payment.proof_path) {
+        await supabase.storage.from("payment-proofs").remove([payment.proof_path])
+        await supabase.from("purchases").update({ proof_path: null }).eq("id", payment.id)
+      }
+    }
+
+    toast.success(`Payment marked as ${status}`, { style: toastStyle })
+    loadPayments()
+  }
+
+  const deleteSubmission = async (id: string) => {
+    const { error } = await supabase.from("purchases").delete().eq("id", id)
+
+    if (error) {
+      toast.error("Failed to delete record", { style: toastStyle })
+      return
+    }
+
+    toast.success("Payment record deleted", { style: toastStyle })
+    loadPayments()
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem(ADMIN_SESSION_KEY)
+    window.location.href = "/admin-login"
+  }
+
+  const getProofUrl = (proofPath: string | null) => {
+    if (!proofPath) return null
+    const { data } = supabase.storage.from("payment-proofs").getPublicUrl(proofPath)
+    return data.publicUrl
+  }
+
+  if (!checkedAuth) return null
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(139,92,246,0.14),_transparent_30%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_55%,#f8fafc_100%)] px-4 py-8 text-slate-900 md:px-6 lg:px-8">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(139,92,246,0.14),_transparent_28%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_55%,#f8fafc_100%)] px-4 py-8 text-slate-900 md:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <section className="mb-8 overflow-hidden rounded-[34px] border border-white/60 bg-slate-900 px-6 py-8 text-white shadow-[0_25px_70px_rgba(15,23,42,0.18)] md:px-8 lg:px-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <p className="text-sm font-bold uppercase tracking-[0.28em] text-violet-300">
-                Secure Checkout
+                Admin Analytics
               </p>
               <h1 className="mt-3 text-4xl font-black tracking-tight md:text-5xl">
-                Complete your Angel Glez COT order
+                Payments, approvals, and revenue at a glance
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
-                Review your selected files, pay through GCash, upload your proof, and wait for
-                approval. Once approved, your downloads will be available in your purchases page.
+                Review buyer submissions, approve payments fast, and track which files and grade levels are selling best.
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:w-auto">
-              <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-300">Items</p>
-                <p className="mt-2 text-2xl font-black">{totalItems}</p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-300">Total</p>
-                <p className="mt-2 text-2xl font-black">₱{total}</p>
-              </div>
+            <div className="flex gap-3">
+              <a
+                href="/admin"
+                className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 font-bold text-white transition hover:bg-white/15"
+              >
+                ← Admin
+              </a>
+              <button
+                onClick={handleLogout}
+                className="rounded-2xl bg-white px-5 py-3 font-bold text-slate-900 transition hover:bg-slate-100"
+              >
+                Logout
+              </button>
             </div>
-          </div>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            <a
-              href="/"
-              className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/15"
-            >
-              ← Marketplace
-            </a>
-            <a
-              href="/cart"
-              className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-100"
-            >
-              Back to Cart
-            </a>
           </div>
         </section>
 
-        {loadingProducts ? (
-          <div className="rounded-[30px] border border-slate-200/70 bg-white/90 p-12 text-center shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
-            <p className="text-lg font-semibold text-slate-500">Loading checkout...</p>
+        <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div className="rounded-[28px] border border-white/70 bg-white/90 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Total Orders</p>
+            <p className="mt-3 text-4xl font-black text-slate-900">{totals.total}</p>
           </div>
-        ) : cartProducts.length === 0 ? (
-          <div className="rounded-[30px] border border-slate-200/70 bg-white/90 p-12 text-center shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
-            <p className="text-lg font-semibold text-slate-500">No items in checkout.</p>
+          <div className="rounded-[28px] border border-amber-200 bg-amber-50 p-5 shadow-[0_20px_60px_rgba(245,158,11,0.08)]">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">Pending</p>
+            <p className="mt-3 text-4xl font-black text-amber-900">{totals.pending}</p>
           </div>
-        ) : (
-          <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-            <section className="rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-600">
-                    Order Summary
-                  </p>
-                  <h2 className="mt-2 text-2xl font-black">Your selected files</h2>
-                </div>
-                <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">
-                  {totalItems} item{totalItems !== 1 ? "s" : ""}
-                </div>
-              </div>
+          <div className="rounded-[28px] border border-emerald-200 bg-emerald-50 p-5 shadow-[0_20px_60px_rgba(16,185,129,0.08)]">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Approved</p>
+            <p className="mt-3 text-4xl font-black text-emerald-900">{totals.approved}</p>
+          </div>
+          <div className="rounded-[28px] border border-rose-200 bg-rose-50 p-5 shadow-[0_20px_60px_rgba(244,63,94,0.08)]">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-rose-700">Rejected</p>
+            <p className="mt-3 text-4xl font-black text-rose-900">{totals.rejected}</p>
+          </div>
+          <div className="rounded-[28px] border border-violet-200 bg-violet-50 p-5 shadow-[0_20px_60px_rgba(124,58,237,0.08)]">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-700">Revenue</p>
+            <p className="mt-3 text-4xl font-black text-violet-900">₱{totals.revenue}</p>
+          </div>
+        </section>
 
+        <section className="mb-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-600">
+                  Insights
+                </p>
+                <h2 className="mt-2 text-2xl font-black">Best-performing products</h2>
+              </div>
+              <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">
+                Top Grade: {totals.topGrade}
+              </div>
+            </div>
+
+            {totals.bestProducts.length === 0 ? (
+              <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-slate-500">
+                No approved sales yet.
+              </div>
+            ) : (
               <div className="space-y-4">
-                {cartProducts.map((product) => (
+                {totals.bestProducts.map((item, index) => (
                   <div
-                    key={product.id}
-                    className="flex flex-col gap-4 rounded-[26px] border border-slate-200/80 bg-slate-50/80 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                    key={item.title}
+                    className="flex flex-col gap-3 rounded-[24px] border border-slate-200 bg-slate-50 p-4 md:flex-row md:items-center md:justify-between"
                   >
                     <div className="flex items-center gap-4">
-                      <img
-                        src={product.imageUrl}
-                        alt={product.title}
-                        className="h-20 w-20 rounded-2xl object-cover ring-1 ring-slate-200"
-                      />
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-900 text-sm font-black text-white">
+                        {index + 1}
+                      </div>
                       <div>
-                        <div className="mb-2 flex flex-wrap gap-2">
-                          <span className="rounded-full bg-violet-100 px-3 py-1 text-[11px] font-bold text-violet-700">
-                            {product.grade}
-                          </span>
-                          <span className="rounded-full bg-slate-200 px-3 py-1 text-[11px] font-bold text-slate-700">
-                            {product.quarter}
-                          </span>
-                        </div>
-                        <h3 className="text-base font-extrabold text-slate-900 md:text-lg">
-                          {product.title}
-                        </h3>
-                        <p className="mt-1 text-sm text-slate-500">{product.fileName}</p>
+                        <p className="font-extrabold text-slate-900">{item.title}</p>
+                        <p className="text-sm text-slate-500">{item.count} approved sale{item.count !== 1 ? "s" : ""}</p>
                       </div>
                     </div>
 
-                    <div className="text-left sm:text-right">
-                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
-                        Price
-                      </p>
-                      <p className="mt-1 text-2xl font-black text-slate-900">₱{product.price}</p>
+                    <div className="text-left md:text-right">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Revenue</p>
+                      <p className="mt-1 text-xl font-black text-slate-900">₱{item.revenue}</p>
                     </div>
                   </div>
                 ))}
               </div>
+            )}
+          </div>
 
-              <div className="mt-8 grid gap-4 md:grid-cols-2">
-                <div className="rounded-[28px] bg-slate-900 p-6 text-white shadow-lg">
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-300">
-                    Payment Summary
-                  </p>
-                  <div className="mt-4 flex items-end justify-between gap-4">
-                    <div>
-                      <p className="text-sm text-slate-300">Total amount</p>
-                      <p className="mt-1 text-4xl font-black">₱{total}</p>
-                    </div>
-                    <div className="rounded-2xl bg-white/10 px-4 py-3 text-right backdrop-blur">
-                      <p className="text-xs font-bold uppercase tracking-wide text-slate-300">
-                        Method
-                      </p>
-                      <p className="mt-1 font-bold">GCash</p>
-                    </div>
-                  </div>
-                </div>
+          <div className="rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-emerald-600">
+              Quick Snapshot
+            </p>
+            <h2 className="mt-2 text-2xl font-black text-slate-900">Selling trend</h2>
 
-                <div className="rounded-[28px] border border-emerald-200 bg-emerald-50 p-6">
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">
-                    Before you submit
-                  </p>
-                  <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
-                    <li>Use the same email you want to check in Purchases.</li>
-                    <li>Send the exact total amount shown here.</li>
-                    <li>Upload a clear screenshot of your payment proof.</li>
-                  </ul>
-                </div>
+            <div className="mt-6 space-y-4">
+              <div className="rounded-[24px] bg-slate-50 p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Top Quarter</p>
+                <p className="mt-2 text-3xl font-black text-slate-900">{totals.topQuarter}</p>
               </div>
-            </section>
 
-            <aside className="rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
-              <div className="mb-6">
-                <p className="text-sm font-bold uppercase tracking-[0.2em] text-emerald-600">
-                  GCash Payment
+              <div className="rounded-[24px] bg-slate-50 p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Top Grade</p>
+                <p className="mt-2 text-3xl font-black text-slate-900">{totals.topGrade}</p>
+              </div>
+
+              <div className="rounded-[24px] border border-violet-200 bg-violet-50 p-5">
+                <p className="text-sm leading-7 text-slate-600">
+                  Approved payments increase product sold counts and automatically clear stored proof images.
                 </p>
-                <h2 className="mt-2 text-2xl font-black text-slate-900">Pay and submit proof</h2>
               </div>
+            </div>
+          </div>
+        </section>
 
-              <div className="mb-6 rounded-[28px] border border-slate-200 bg-slate-50 p-5">
-                <p className="text-sm font-bold text-slate-800">Payment steps</p>
-                <div className="mt-4 space-y-3 text-sm text-slate-600">
-                  <div className="flex gap-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
-                      1
-                    </span>
-                    <p>Choose a QR option below and scan it using GCash.</p>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
-                      2
-                    </span>
-                    <p>Send the exact amount of <span className="font-bold text-slate-900">₱{total}</span>.</p>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
-                      3
-                    </span>
-                    <p>Enter your buyer details and upload your proof of payment.</p>
-                  </div>
-                </div>
-              </div>
+        <section className="mb-6 rounded-[30px] border border-white/70 bg-white/90 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+          <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search buyer name, email, product, or status"
+              className="w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 outline-none transition focus:border-violet-500 focus:bg-white"
+            />
 
-              <div className="mb-6">
-                <div className="mb-4 grid grid-cols-3 gap-2">
-                  {[1, 2, 3].map((num) => (
-                    <button
-                      key={num}
-                      onClick={() => setSelectedQR(num)}
-                      className={`rounded-2xl px-3 py-3 text-sm font-bold transition ${
-                        selectedQR === num
-                          ? "bg-emerald-600 text-white shadow-lg shadow-emerald-100"
-                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as "all" | "pending" | "approved" | "rejected")}
+              className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-4 font-bold text-slate-700 outline-none transition focus:border-violet-500 focus:bg-white"
+            >
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+        </section>
+
+        {loading ? (
+          <div className="rounded-[28px] border border-slate-200/70 bg-white/90 p-12 text-center shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+            <p className="text-lg font-semibold text-slate-500">Loading payments...</p>
+          </div>
+        ) : filteredPayments.length === 0 ? (
+          <div className="rounded-[28px] border border-slate-200/70 bg-white/90 p-12 text-center shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+            <p className="text-lg font-semibold text-slate-500">No payment submissions yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {filteredPayments.map((payment) => {
+              const proofUrl = getProofUrl(payment.proof_path)
+
+              return (
+                <div
+                  key={payment.id}
+                  className="rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur"
+                >
+                  <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <h2 className="text-2xl font-extrabold text-slate-900">{payment.buyer_name}</h2>
+                      <p className="mt-1 text-slate-500">{payment.buyer_email}</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Submitted: {new Date(payment.created_at).toLocaleString()}
+                      </p>
+                    </div>
+
+                    <div
+                      className={`rounded-full px-4 py-2 text-sm font-bold ${
+                        payment.status === "pending"
+                          ? "bg-amber-100 text-amber-700"
+                          : payment.status === "approved"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-rose-100 text-rose-700"
                       }`}
                     >
-                      QR {num}
+                      {payment.status}
+                    </div>
+                  </div>
+
+                  <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-2xl bg-slate-50 p-4">
+                      <p className="text-sm font-semibold text-slate-500">Product</p>
+                      <p className="mt-2 font-bold">{payment.products?.title || "Unknown product"}</p>
+                    </div>
+
+                    <div className="rounded-2xl bg-slate-50 p-4">
+                      <p className="text-sm font-semibold text-slate-500">Grade / Quarter</p>
+                      <p className="mt-2 font-bold">
+                        {payment.products?.grade || "-"} • {payment.products?.quarter || "-"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-slate-50 p-4">
+                      <p className="text-sm font-semibold text-slate-500">Amount</p>
+                      <p className="mt-2 font-bold">₱{payment.products?.price || 0}</p>
+                    </div>
+
+                    <div className="rounded-2xl bg-slate-50 p-4">
+                      <p className="text-sm font-semibold text-slate-500">File</p>
+                      <p className="mt-2 font-bold">{payment.products?.file_name || "-"}</p>
+                    </div>
+                  </div>
+
+                  {payment.products && (
+                    <div className="mb-6 flex items-center gap-4 rounded-[24px] border border-slate-200 p-4">
+                      <img
+                        src={payment.products.image_url}
+                        alt={payment.products.title}
+                        className="h-20 w-20 rounded-2xl object-cover"
+                      />
+                      <div>
+                        <p className="font-bold text-slate-900">{payment.products.title}</p>
+                        <p className="text-sm text-slate-500">
+                          {payment.products.grade} • {payment.products.quarter}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {proofUrl ? (
+                    <div className="mb-6">
+                      <p className="mb-3 text-sm font-semibold text-slate-500">Proof of Payment</p>
+                      <a href={proofUrl} target="_blank" rel="noreferrer">
+                        <img
+                          src={proofUrl}
+                          alt="Proof of payment"
+                          className="max-h-[320px] rounded-2xl border border-slate-200 object-contain"
+                        />
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="mb-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
+                      No proof image available.
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() => updateStatus(payment, "pending")}
+                      className="rounded-2xl bg-amber-500 px-4 py-2 font-bold text-white transition hover:bg-amber-600"
+                    >
+                      Mark Pending
                     </button>
-                  ))}
+
+                    <button
+                      onClick={() => updateStatus(payment, "approved")}
+                      className="rounded-2xl bg-emerald-600 px-4 py-2 font-bold text-white transition hover:bg-emerald-700"
+                    >
+                      Mark Approved
+                    </button>
+
+                    <button
+                      onClick={() => updateStatus(payment, "rejected")}
+                      className="rounded-2xl bg-rose-500 px-4 py-2 font-bold text-white transition hover:bg-rose-600"
+                    >
+                      Mark Rejected
+                    </button>
+
+                    <button
+                      onClick={() => deleteSubmission(payment.id)}
+                      className="rounded-2xl border border-slate-300 px-4 py-2 font-bold text-slate-700 transition hover:bg-slate-100"
+                    >
+                      Delete Record
+                    </button>
+                  </div>
                 </div>
-
-                <div className="flex justify-center rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-                  <img
-                    src={qrImage}
-                    alt={`GCash QR Option ${selectedQR}`}
-                    className={`h-auto rounded-2xl object-contain ${
-                      selectedQR === 1 ? "w-full max-w-[320px]" : "w-full max-w-[260px]"
-                    }`}
-                  />
-                </div>
-              </div>
-
-              <div className="mb-6 rounded-[28px] bg-slate-900 p-5 text-white">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">
-                  Receiver Details
-                </p>
-                <p className="mt-3 text-lg font-bold">Angel Glez Store</p>
-                <p className="mt-2 text-sm text-slate-300">Amount to pay: ₱{total}</p>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-slate-700">Buyer Name</label>
-                  <input
-                    value={buyerName}
-                    onChange={(e) => setBuyerName(e.target.value)}
-                    placeholder="Enter your full name"
-                    className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-slate-700">Buyer Email</label>
-                  <input
-                    type="email"
-                    value={buyerEmail}
-                    onChange={(e) => setBuyerEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
-                  />
-                </div>
-
-                <div className="rounded-[24px] border border-dashed border-slate-300 bg-slate-50 p-4">
-                  <p className="mb-2 text-sm font-bold text-slate-700">Upload proof of payment</p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-                    className="block w-full text-sm text-slate-600"
-                  />
-                  <p className="mt-2 text-xs text-slate-400">
-                    Max file size: 1MB {proofFile ? `• Selected: ${proofFile.name}` : ""}
-                  </p>
-                </div>
-
-                <button
-                  onClick={confirmPayment}
-                  disabled={submitting}
-                  className="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 py-4 text-lg font-extrabold text-white shadow-lg shadow-emerald-100 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {submitting ? "Submitting..." : "Submit Payment"}
-                </button>
-              </div>
-
-              <p className="mt-4 text-center text-sm text-slate-500">
-                Manual approval for now. Your files will appear in Purchases after verification.
-              </p>
-            </aside>
+              )
+            })}
           </div>
         )}
       </div>
