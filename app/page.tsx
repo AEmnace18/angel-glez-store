@@ -1446,12 +1446,6 @@ export default function Home() {
             filter: blur(8px);
           }
         }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-            filter: blur(0);
-          }
-        }
 
         @keyframes heroGradientShift {
           0% {
