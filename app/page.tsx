@@ -455,7 +455,11 @@ export default function Home() {
                   </h1>
 
                   <p className="mt-6 max-w-2xl text-base leading-8 text-slate-600 md:text-lg">
-                    Built for busy teachers who need clean, classroom-ready files they can open, edit, and use right away. Open a quarter folder first, jump straight to the grade folders next, then open any grade folder to see the files inside.
+                    Built for busy teachers who need clean, classroom-ready files they can open, edit, and use right away. Find your quarter first, open the grade folder next, then access polished materials made for real classroom work.
+                  </p>
+
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500 md:text-base">
+                    Save time on lesson preparation, stay organized every quarter, and teach with more confidence using files arranged the way teachers actually browse.
                   </p>
 
                   <div className="mt-8 flex flex-wrap gap-4">
@@ -479,28 +483,28 @@ export default function Home() {
 
                   <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-600">
                     <span className="rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">
-                      Sticky premium top panel
+                      Ready-to-edit files
                     </span>
                     <span className="rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">
-                      Folder-to-folder browsing
+                      Organized for teachers
                     </span>
                     <span className="rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm">
-                      Heart pops on like
+                      Instant secure download
                     </span>
                   </div>
 
                   <div className="mt-10 grid max-w-2xl gap-4 sm:grid-cols-3">
                     <div className="rounded-[28px] border border-white bg-white/90 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
                       <p className="text-3xl font-black text-slate-900">{products.length}</p>
-                      <p className="mt-1 text-sm text-slate-500">Products</p>
+                      <p className="mt-1 text-sm text-slate-500">Teaching Files</p>
                     </div>
                     <div className="rounded-[28px] border border-white bg-white/90 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
                       <p className="text-3xl font-black text-slate-900">{cart.length}</p>
-                      <p className="mt-1 text-sm text-slate-500">In Cart</p>
+                      <p className="mt-1 text-sm text-slate-500">Saved in Cart</p>
                     </div>
                     <div className="rounded-[28px] border border-white bg-white/90 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
                       <p className="text-3xl font-black text-slate-900">{likedIds.length}</p>
-                      <p className="mt-1 text-sm text-slate-500">Likes</p>
+                      <p className="mt-1 text-sm text-slate-500">Teacher Likes</p>
                     </div>
                   </div>
                 </div>
@@ -911,7 +915,7 @@ export default function Home() {
                           <div className="mb-5 flex items-center gap-3">
                             <button
                               onClick={() => toggleLike(product.id)}
-                              className={`heart-press flex h-12 w-12 items-center justify-center rounded-full border transition-all duration-200 hover:scale-105 active:scale-95 ${
+                              className={`heart-press flex h-12 w-12 items-center justify-center rounded-full border shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_12px_24px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-105 active:scale-95 ${
                                 hasLiked(product.id)
                                   ? "border-pink-200 bg-[linear-gradient(180deg,#ffe4ef,#ffc9dd)] text-pink-600 shadow-[inset_0_2px_0_rgba(255,255,255,0.75),0_8px_16px_rgba(236,72,153,0.18)]"
                                   : "border-slate-200 bg-[linear-gradient(180deg,#ffffff,#eef2ff)] text-slate-500 shadow-[inset_0_2px_0_rgba(255,255,255,0.85),0_8px_16px_rgba(15,23,42,0.08)]"
@@ -1032,7 +1036,7 @@ export default function Home() {
                 <div className="mt-6 flex flex-wrap items-center gap-3">
                   <button
                     onClick={() => toggleLike(selectedProduct.id)}
-                    className={`heart-press flex h-12 w-12 items-center justify-center rounded-full border transition-all duration-200 hover:scale-105 active:scale-95 ${
+                    className={`heart-press flex h-12 w-12 items-center justify-center rounded-full border shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_12px_24px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-105 active:scale-95 ${
                       hasLiked(selectedProduct.id)
                         ? "border-pink-200 bg-[linear-gradient(180deg,#ffe4ef,#ffc9dd)] text-pink-600 shadow-[inset_0_2px_0_rgba(255,255,255,0.75),0_8px_16px_rgba(236,72,153,0.18)]"
                         : "border-slate-200 bg-[linear-gradient(180deg,#ffffff,#eef2ff)] text-slate-500 shadow-[inset_0_2px_0_rgba(255,255,255,0.85),0_8px_16px_rgba(15,23,42,0.08)]"
@@ -1141,14 +1145,19 @@ export default function Home() {
         }
 
         @keyframes heartPop {
-          0% { transform: scale(1); }
-          35% { transform: scale(1.28) translateY(-2px); }
-          60% { transform: scale(0.94); }
-          100% { transform: scale(1); }
+          0% { transform: scale(1) translateY(0) rotate(0deg); filter: drop-shadow(0 0 0 rgba(244,63,94,0)); }
+          20% { transform: scale(1.18) translateY(-2px) rotate(-6deg); }
+          45% { transform: scale(1.34) translateY(-4px) rotate(6deg); filter: drop-shadow(0 12px 22px rgba(244,63,94,0.28)); }
+          70% { transform: scale(0.95) translateY(0) rotate(-2deg); }
+          100% { transform: scale(1) translateY(0) rotate(0deg); filter: drop-shadow(0 6px 12px rgba(244,63,94,0.14)); }
         }
 
         .heart-pop {
-          animation: heartPop 0.35s ease;
+          animation: heartPop 0.5s cubic-bezier(.2,.9,.2,1);
+        }
+
+        .heart-press {
+          transform-style: preserve-3d;
         }
 
         html {
