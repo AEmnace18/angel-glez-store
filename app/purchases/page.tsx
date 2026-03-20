@@ -23,6 +23,7 @@ export default function PurchasesPage() {
   const [buyerEmail, setBuyerEmail] = useState("")
   const [purchases, setPurchases] = useState<PurchaseRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
   const loadPurchases = async (email: string, silent = false) => {
     if (!email) {
@@ -92,6 +93,40 @@ export default function PurchasesPage() {
       supabase.removeChannel(channel)
     }
   }, [buyerEmail])
+
+  const handleDownload = async (
+    purchaseId: string,
+    fileKey: string,
+    fileName: string
+  ) => {
+    try {
+      setDownloadingId(purchaseId)
+
+      const response = await fetch("/api/download", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fileKey,
+          fileName,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Download failed")
+      }
+
+      window.open(data.downloadUrl, "_blank")
+    } catch (error) {
+      console.error(error)
+      alert(error instanceof Error ? error.message : "Download failed")
+    } finally {
+      setDownloadingId(null)
+    }
+  }
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-10 text-slate-900">
@@ -174,13 +209,19 @@ export default function PurchasesPage() {
                   </div>
 
                   {purchase.status === "approved" ? (
-                    <a
-                      href={product.file_url}
-                      download={product.file_name}
-                      className="rounded-xl bg-emerald-600 px-4 py-2 font-bold text-white"
+                    <button
+                      onClick={() =>
+                        handleDownload(
+                          purchase.id,
+                          product.file_url,
+                          product.file_name
+                        )
+                      }
+                      disabled={downloadingId === purchase.id}
+                      className="rounded-xl bg-emerald-600 px-4 py-2 font-bold text-white disabled:opacity-70"
                     >
-                      Download
-                    </a>
+                      {downloadingId === purchase.id ? "Preparing..." : "Download"}
+                    </button>
                   ) : purchase.status === "pending" ? (
                     <div className="rounded-xl bg-amber-50 px-4 py-2 text-sm font-bold text-amber-700">
                       Please wait for approval
