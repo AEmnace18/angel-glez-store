@@ -11,25 +11,51 @@ const r2 = new S3Client({
   },
 })
 
+function extractObjectKey(input: string) {
+  if (!input) return ""
+
+  if (!input.startsWith("http://") && !input.startsWith("https://")) {
+    return input
+  }
+
+  try {
+    const url = new URL(input)
+    const path = url.pathname.replace(/^\/+/, "")
+    const bucketName = process.env.R2_BUCKET_NAME || ""
+
+    if (bucketName && path.startsWith(`${bucketName}/`)) {
+      return path.slice(bucketName.length + 1)
+    }
+
+    return path
+  } catch {
+    return input
+  }
+}
+
 export async function POST(req: Request) {
   try {
-    const { fileKey, fileName } = await req.json()
+    const body = await req.json()
+    const rawFileKey = String(body.fileKey || "")
+    const fileName = String(body.fileName || "download")
 
-    if (!fileKey) {
+    if (!rawFileKey) {
       return NextResponse.json({ error: "Missing file key" }, { status: 400 })
     }
 
+    const objectKey = extractObjectKey(rawFileKey)
+
     const command = new GetObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME!,
-      Key: fileKey,
-      ResponseContentDisposition: `attachment; filename="${fileName || "download"}"`,
+      Key: objectKey,
+      ResponseContentDisposition: `attachment; filename="${fileName}"`,
     })
 
     const downloadUrl = await getSignedUrl(r2, command, { expiresIn: 60 * 5 })
 
     return NextResponse.json({ downloadUrl })
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ error: "Failed to create download URL" }, { status: 500 })
+    console.error("DOWNLOAD ERROR:", error)
+    return NextResponse.json({ error: "Failed to prepare download" }, { status: 500 })
   }
 }
