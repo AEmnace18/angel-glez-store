@@ -119,7 +119,7 @@ export default function PurchasesPage() {
         throw new Error(data?.error || "Download failed")
       }
 
-      window.open(data.downloadUrl, "_blank")
+      window.open(data.downloadUrl, "_blank", "noopener,noreferrer")
     } catch (error) {
       console.error(error)
       alert(error instanceof Error ? error.message : "Download failed")
@@ -147,10 +147,7 @@ export default function PurchasesPage() {
               Refresh Status
             </button>
 
-            <a
-              href="/"
-              className="rounded-xl bg-violet-600 px-4 py-2 font-bold text-white"
-            >
+            <a href="/" className="rounded-xl bg-violet-600 px-4 py-2 font-bold text-white">
               Back to Store
             </a>
           </div>
@@ -211,11 +208,7 @@ export default function PurchasesPage() {
                   {purchase.status === "approved" ? (
                     <button
                       onClick={() =>
-                        handleDownload(
-                          purchase.id,
-                          product.file_url,
-                          product.file_name
-                        )
+                        handleDownload(purchase.id, product.file_url, product.file_name)
                       }
                       disabled={downloadingId === purchase.id}
                       className="rounded-xl bg-emerald-600 px-4 py-2 font-bold text-white disabled:opacity-70"
