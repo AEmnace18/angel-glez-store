@@ -1305,11 +1305,27 @@ export default function Home() {
         }
 
         @keyframes heroLineReveal {
-          from {
+          0% {
             opacity: 0;
             transform: translateY(26px);
             filter: blur(8px);
           }
+          8% {
+            opacity: 1;
+            transform: translateY(0);
+            filter: blur(0);
+          }
+          82% {
+            opacity: 1;
+            transform: translateY(0);
+            filter: blur(0);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(26px);
+            filter: blur(8px);
+          }
+        }
           to {
             opacity: 1;
             transform: translateY(0);
@@ -1329,7 +1345,10 @@ export default function Home() {
         .hero-line {
           opacity: 0;
           will-change: transform, opacity, filter;
-          animation: heroLineReveal 0.9s cubic-bezier(.22,1,.36,1) forwards;
+          animation-name: heroLineReveal;
+          animation-duration: 10s;
+          animation-timing-function: cubic-bezier(.22,1,.36,1);
+          animation-iteration-count: infinite;
         }
 
         .hero-line:nth-child(1) {
@@ -1351,7 +1370,7 @@ export default function Home() {
           background-clip: text;
           color: transparent;
           animation:
-            heroLineReveal 0.9s cubic-bezier(.22,1,.36,1) forwards,
+            heroLineReveal 10s cubic-bezier(.22,1,.36,1) infinite,
             heroGradientShift 7s linear infinite;
         }
 
