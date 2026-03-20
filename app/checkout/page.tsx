@@ -5,6 +5,13 @@ import toast from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
 
 const CART_KEY = "angel-glez-cart"
+const MAX_PROOF_SIZE = 1024 * 1024
+
+const toastStyle = {
+  borderRadius: "14px",
+  background: "#0f172a",
+  color: "#fff",
+}
 
 type Product = {
   id: number
@@ -36,13 +43,7 @@ export default function CheckoutPage() {
       const { data, error } = await supabase.from("products").select("*")
 
       if (error) {
-        toast.error("Failed to load products", {
-          style: {
-            borderRadius: "14px",
-            background: "#0f172a",
-            color: "#fff",
-          },
-        })
+        toast.error("Failed to load products", { style: toastStyle })
         setLoadingProducts(false)
         return
       }
@@ -74,48 +75,26 @@ export default function CheckoutPage() {
     return cartProducts.reduce((sum, product) => sum + Number(product.price), 0)
   }, [cartProducts])
 
+  const totalItems = cartProducts.length
+
   const confirmPayment = async () => {
     if (!buyerName.trim() || !buyerEmail.trim()) {
-      toast.error("Please enter your name and email.", {
-        style: {
-          borderRadius: "14px",
-          background: "#0f172a",
-          color: "#fff",
-        },
-      })
+      toast.error("Please enter your name and email.", { style: toastStyle })
       return
     }
 
     if (!proofFile) {
-      toast.error("Please upload proof of payment.", {
-        style: {
-          borderRadius: "14px",
-          background: "#0f172a",
-          color: "#fff",
-        },
-      })
+      toast.error("Please upload proof of payment.", { style: toastStyle })
       return
     }
 
-    if (proofFile.size > 1024 * 1024) {
-      toast.error("Proof image must be under 1MB.", {
-        style: {
-          borderRadius: "14px",
-          background: "#0f172a",
-          color: "#fff",
-        },
-      })
+    if (proofFile.size > MAX_PROOF_SIZE) {
+      toast.error("Proof image must be under 1MB.", { style: toastStyle })
       return
     }
 
     if (cartProducts.length === 0) {
-      toast.error("No items in checkout.", {
-        style: {
-          borderRadius: "14px",
-          background: "#0f172a",
-          color: "#fff",
-        },
-      })
+      toast.error("No items in checkout.", { style: toastStyle })
       return
     }
 
@@ -123,22 +102,17 @@ export default function CheckoutPage() {
       setSubmitting(true)
 
       const fileExt = proofFile.name.split(".").pop()
-      const filePath = `proofs/${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2)}.${fileExt}`
+      const filePath = `proofs/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
 
       const { error: uploadError } = await supabase.storage
         .from("payment-proofs")
-        .upload(filePath, proofFile)
+        .upload(filePath, proofFile, {
+          contentType: proofFile.type || "image/jpeg",
+          upsert: false,
+        })
 
       if (uploadError) {
-        toast.error("Failed to upload proof.", {
-          style: {
-            borderRadius: "14px",
-            background: "#0f172a",
-            color: "#fff",
-          },
-        })
+        toast.error("Failed to upload proof.", { style: toastStyle })
         setSubmitting(false)
         return
       }
@@ -151,19 +125,10 @@ export default function CheckoutPage() {
         status: "pending",
       }))
 
-      const { error: insertError } = await supabase
-        .from("purchases")
-        .insert(purchaseRows)
+      const { error: insertError } = await supabase.from("purchases").insert(purchaseRows)
 
       if (insertError) {
-        console.log("Insert error:", insertError)
-        toast.error(insertError.message || "Failed to save payment.", {
-          style: {
-            borderRadius: "14px",
-            background: "#0f172a",
-            color: "#fff",
-          },
-        })
+        toast.error(insertError.message || "Failed to save payment.", { style: toastStyle })
         setSubmitting(false)
         return
       }
@@ -177,198 +142,276 @@ export default function CheckoutPage() {
       setProofFile(null)
 
       toast.success("Payment submitted. Please wait for verification.", {
-        style: {
-          borderRadius: "14px",
-          background: "#0f172a",
-          color: "#fff",
-        },
+        style: toastStyle,
       })
 
       setTimeout(() => {
         window.location.href = "/purchases"
       }, 1200)
     } catch {
-      toast.error("Something went wrong.", {
-        style: {
-          borderRadius: "14px",
-          background: "#0f172a",
-          color: "#fff",
-        },
-      })
+      toast.error("Something went wrong.", { style: toastStyle })
     } finally {
       setSubmitting(false)
     }
   }
 
-  const qrImage =
-    selectedQR === 1 ? "/qr1.jpg" : selectedQR === 2 ? "/qr2.jpg" : "/qr3.jpg"
+  const qrImage = selectedQR === 1 ? "/qr1.jpg" : selectedQR === 2 ? "/qr2.jpg" : "/qr3.jpg"
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-10 text-slate-900">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-4xl font-extrabold">GCash Checkout</h1>
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(139,92,246,0.14),_transparent_30%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_55%,#f8fafc_100%)] px-4 py-8 text-slate-900 md:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <section className="mb-8 overflow-hidden rounded-[34px] border border-white/60 bg-slate-900 px-6 py-8 text-white shadow-[0_25px_70px_rgba(15,23,42,0.18)] md:px-8 lg:px-10">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-sm font-bold uppercase tracking-[0.28em] text-violet-300">
+                Secure Checkout
+              </p>
+              <h1 className="mt-3 text-4xl font-black tracking-tight md:text-5xl">
+                Complete your Angel Glez COT order
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
+                Review your selected files, pay through GCash, upload your proof, and wait for
+                approval. Once approved, your downloads will be available in your purchases page.
+              </p>
+            </div>
 
-          <div className="flex gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:w-auto">
+              <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-300">Items</p>
+                <p className="mt-2 text-2xl font-black">{totalItems}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/10 px-4 py-4 backdrop-blur">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-300">Total</p>
+                <p className="mt-2 text-2xl font-black">₱{total}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-3">
             <a
               href="/"
-              className="rounded-2xl border border-slate-300 px-5 py-3 font-bold text-slate-700 hover:bg-slate-100"
+              className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/15"
             >
               ← Marketplace
             </a>
-
             <a
               href="/cart"
-              className="rounded-2xl bg-violet-600 px-5 py-3 font-bold text-white hover:bg-violet-700"
+              className="rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-100"
             >
               Back to Cart
             </a>
           </div>
-        </div>
+        </section>
 
         {loadingProducts ? (
-          <div className="rounded-[28px] bg-white p-10 text-center shadow-sm">
-            <p className="text-lg text-slate-500">Loading checkout...</p>
+          <div className="rounded-[30px] border border-slate-200/70 bg-white/90 p-12 text-center shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+            <p className="text-lg font-semibold text-slate-500">Loading checkout...</p>
           </div>
         ) : cartProducts.length === 0 ? (
-          <div className="rounded-[28px] bg-white p-10 text-center shadow-sm">
-            <p className="text-lg text-slate-500">No items in checkout.</p>
+          <div className="rounded-[30px] border border-slate-200/70 bg-white/90 p-12 text-center shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+            <p className="text-lg font-semibold text-slate-500">No items in checkout.</p>
           </div>
         ) : (
-          <div className="grid gap-8 lg:grid-cols-[1.2fr_0.9fr]">
-            <div className="rounded-[28px] bg-white p-6 shadow-sm">
-              <h2 className="mb-6 text-2xl font-extrabold">Order Summary</h2>
+          <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+            <section className="rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-600">
+                    Order Summary
+                  </p>
+                  <h2 className="mt-2 text-2xl font-black">Your selected files</h2>
+                </div>
+                <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">
+                  {totalItems} item{totalItems !== 1 ? "s" : ""}
+                </div>
+              </div>
 
               <div className="space-y-4">
                 {cartProducts.map((product) => (
                   <div
                     key={product.id}
-                    className="flex items-center justify-between rounded-2xl border border-slate-200 p-4"
+                    className="flex flex-col gap-4 rounded-[26px] border border-slate-200/80 bg-slate-50/80 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <div className="flex gap-4">
+                    <div className="flex items-center gap-4">
                       <img
                         src={product.imageUrl}
                         alt={product.title}
-                        className="h-20 w-20 rounded-2xl object-cover"
+                        className="h-20 w-20 rounded-2xl object-cover ring-1 ring-slate-200"
                       />
                       <div>
-                        <h3 className="font-extrabold">{product.title}</h3>
-                        <p className="text-sm text-slate-500">
-                          {product.grade} • {product.quarter}
-                        </p>
-                        <p className="text-sm text-slate-500">{product.fileName}</p>
+                        <div className="mb-2 flex flex-wrap gap-2">
+                          <span className="rounded-full bg-violet-100 px-3 py-1 text-[11px] font-bold text-violet-700">
+                            {product.grade}
+                          </span>
+                          <span className="rounded-full bg-slate-200 px-3 py-1 text-[11px] font-bold text-slate-700">
+                            {product.quarter}
+                          </span>
+                        </div>
+                        <h3 className="text-base font-extrabold text-slate-900 md:text-lg">
+                          {product.title}
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-500">{product.fileName}</p>
                       </div>
                     </div>
 
-                    <span className="text-xl font-black">₱{product.price}</span>
+                    <div className="text-left sm:text-right">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                        Price
+                      </p>
+                      <p className="mt-1 text-2xl font-black text-slate-900">₱{product.price}</p>
+                    </div>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-8 rounded-3xl bg-slate-50 p-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold">Total</span>
-                  <span className="text-3xl font-black">₱{total}</span>
+              <div className="mt-8 grid gap-4 md:grid-cols-2">
+                <div className="rounded-[28px] bg-slate-900 p-6 text-white shadow-lg">
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-300">
+                    Payment Summary
+                  </p>
+                  <div className="mt-4 flex items-end justify-between gap-4">
+                    <div>
+                      <p className="text-sm text-slate-300">Total amount</p>
+                      <p className="mt-1 text-4xl font-black">₱{total}</p>
+                    </div>
+                    <div className="rounded-2xl bg-white/10 px-4 py-3 text-right backdrop-blur">
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-300">
+                        Method
+                      </p>
+                      <p className="mt-1 font-bold">GCash</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[28px] border border-emerald-200 bg-emerald-50 p-6">
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">
+                    Before you submit
+                  </p>
+                  <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
+                    <li>Use the same email you want to check in Purchases.</li>
+                    <li>Send the exact total amount shown here.</li>
+                    <li>Upload a clear screenshot of your payment proof.</li>
+                  </ul>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="rounded-[28px] bg-white p-6 shadow-sm">
-              <h2 className="mb-6 text-2xl font-extrabold">Pay with GCash</h2>
-
-              <div className="mb-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
-                <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
-                  Payment Instructions
-                </p>
-                <p className="mt-3 text-sm leading-7 text-slate-700">
-                  1. Choose a QR option below. <br />
-                  2. Scan the QR code using GCash. <br />
-                  3. Send the exact total amount. <br />
-                  4. Enter your name and email. <br />
-                  5. Upload your proof of payment. <br />
-                  6. Click <span className="font-bold">Submit Payment</span>.
-                </p>
-              </div>
-
+            <aside className="rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
               <div className="mb-6">
-                <div className="mb-4 flex justify-center gap-3">
-                  {[1, 2, 3].map((num) => (
-                    <button
-                      key={num}
-                      onClick={() => setSelectedQR(num)}
-                      className={`rounded-xl px-4 py-2 font-bold transition ${
-                        selectedQR === num
-                          ? "bg-emerald-600 text-white shadow"
-                          : "bg-slate-200 text-slate-700 hover:bg-slate-300"
-                      }`}
-                    >
-                      Option {num}
-                    </button>
-                  ))}
-                </div>
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-emerald-600">
+                  GCash Payment
+                </p>
+                <h2 className="mt-2 text-2xl font-black text-slate-900">Pay and submit proof</h2>
+              </div>
 
-                <div className="flex justify-center">
-                  <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-md">
-                    <img
-                      src={qrImage}
-                      alt={`GCash QR Option ${selectedQR}`}
-                      className={`h-auto rounded-2xl object-contain ${
-                        selectedQR === 1
-                          ? "w-full max-w-[320px]"
-                          : "w-full max-w-[260px]"
-                      }`}
-                    />
+              <div className="mb-6 rounded-[28px] border border-slate-200 bg-slate-50 p-5">
+                <p className="text-sm font-bold text-slate-800">Payment steps</p>
+                <div className="mt-4 space-y-3 text-sm text-slate-600">
+                  <div className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
+                      1
+                    </span>
+                    <p>Choose a QR option below and scan it using GCash.</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
+                      2
+                    </span>
+                    <p>Send the exact amount of <span className="font-bold text-slate-900">₱{total}</span>.</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
+                      3
+                    </span>
+                    <p>Enter your buyer details and upload your proof of payment.</p>
                   </div>
                 </div>
               </div>
 
-              <div className="mb-6 rounded-3xl bg-slate-50 p-5">
-                <p className="font-bold text-slate-800">GCash Name: Angel Glez Store</p>
-                <p className="mt-2 text-slate-600">Amount to Pay: ₱{total}</p>
+              <div className="mb-6">
+                <div className="mb-4 grid grid-cols-3 gap-2">
+                  {[1, 2, 3].map((num) => (
+                    <button
+                      key={num}
+                      onClick={() => setSelectedQR(num)}
+                      className={`rounded-2xl px-3 py-3 text-sm font-bold transition ${
+                        selectedQR === num
+                          ? "bg-emerald-600 text-white shadow-lg shadow-emerald-100"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      }`}
+                    >
+                      QR {num}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex justify-center rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+                  <img
+                    src={qrImage}
+                    alt={`GCash QR Option ${selectedQR}`}
+                    className={`h-auto rounded-2xl object-contain ${
+                      selectedQR === 1 ? "w-full max-w-[320px]" : "w-full max-w-[260px]"
+                    }`}
+                  />
+                </div>
+              </div>
+
+              <div className="mb-6 rounded-[28px] bg-slate-900 p-5 text-white">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">
+                  Receiver Details
+                </p>
+                <p className="mt-3 text-lg font-bold">Angel Glez Store</p>
+                <p className="mt-2 text-sm text-slate-300">Amount to pay: ₱{total}</p>
               </div>
 
               <div className="space-y-4">
-                <input
-                  value={buyerName}
-                  onChange={(e) => setBuyerName(e.target.value)}
-                  placeholder="Your Name"
-                  className="w-full rounded-2xl border border-slate-300 p-4 outline-none"
-                />
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">Buyer Name</label>
+                  <input
+                    value={buyerName}
+                    onChange={(e) => setBuyerName(e.target.value)}
+                    placeholder="Enter your full name"
+                    className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
+                  />
+                </div>
 
-                <input
-                  type="email"
-                  value={buyerEmail}
-                  onChange={(e) => setBuyerEmail(e.target.value)}
-                  placeholder="Your Email"
-                  className="w-full rounded-2xl border border-slate-300 p-4 outline-none"
-                />
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">Buyer Email</label>
+                  <input
+                    type="email"
+                    value={buyerEmail}
+                    onChange={(e) => setBuyerEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
+                  />
+                </div>
 
-                <div className="rounded-2xl border border-slate-300 p-4">
-                  <p className="mb-3 text-sm font-semibold text-slate-500">
-                    Upload proof of payment
-                  </p>
+                <div className="rounded-[24px] border border-dashed border-slate-300 bg-slate-50 p-4">
+                  <p className="mb-2 text-sm font-bold text-slate-700">Upload proof of payment</p>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-                    className="block w-full text-sm"
+                    className="block w-full text-sm text-slate-600"
                   />
-                  <p className="mt-2 text-xs text-slate-400">Max file size: 1MB</p>
+                  <p className="mt-2 text-xs text-slate-400">
+                    Max file size: 1MB {proofFile ? `• Selected: ${proofFile.name}` : ""}
+                  </p>
                 </div>
 
                 <button
                   onClick={confirmPayment}
                   disabled={submitting}
-                  className="w-full rounded-2xl bg-emerald-600 py-4 text-lg font-bold text-white hover:bg-emerald-700 disabled:opacity-60"
+                  className="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 py-4 text-lg font-extrabold text-white shadow-lg shadow-emerald-100 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {submitting ? "Submitting..." : "Submit Payment"}
                 </button>
               </div>
 
               <p className="mt-4 text-center text-sm text-slate-500">
-                Manual GCash checkout for now.
+                Manual approval for now. Your files will appear in Purchases after verification.
               </p>
-            </div>
+            </aside>
           </div>
         )}
       </div>
