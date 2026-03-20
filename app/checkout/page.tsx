@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import toast from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
 
@@ -26,6 +27,9 @@ type Product = {
 }
 
 export default function CheckoutPage() {
+  const searchParams = useSearchParams()
+  const directProductId = Number(searchParams.get("productId") || 0)
+
   const [products, setProducts] = useState<Product[]>([])
   const [cartIds, setCartIds] = useState<number[]>([])
   const [buyerName, setBuyerName] = useState("")
@@ -67,15 +71,19 @@ export default function CheckoutPage() {
     loadProducts()
   }, [])
 
-  const cartProducts = useMemo(() => {
+  const checkoutProducts = useMemo(() => {
+    if (directProductId) {
+      return products.filter((product) => product.id === directProductId)
+    }
+
     return products.filter((product) => cartIds.includes(product.id))
-  }, [products, cartIds])
+  }, [products, cartIds, directProductId])
 
   const total = useMemo(() => {
-    return cartProducts.reduce((sum, product) => sum + Number(product.price), 0)
-  }, [cartProducts])
+    return checkoutProducts.reduce((sum, product) => sum + Number(product.price), 0)
+  }, [checkoutProducts])
 
-  const totalItems = cartProducts.length
+  const totalItems = checkoutProducts.length
 
   const confirmPayment = async () => {
     if (!buyerName.trim() || !buyerEmail.trim()) {
@@ -93,7 +101,7 @@ export default function CheckoutPage() {
       return
     }
 
-    if (cartProducts.length === 0) {
+    if (checkoutProducts.length === 0) {
       toast.error("No items in checkout.", { style: toastStyle })
       return
     }
@@ -117,7 +125,7 @@ export default function CheckoutPage() {
         return
       }
 
-      const purchaseRows = cartProducts.map((product) => ({
+      const purchaseRows = checkoutProducts.map((product) => ({
         product_id: product.id,
         buyer_name: buyerName,
         buyer_email: buyerEmail,
@@ -134,9 +142,12 @@ export default function CheckoutPage() {
       }
 
       localStorage.setItem("angel-glez-buyer-email", buyerEmail)
-      localStorage.setItem(CART_KEY, JSON.stringify([]))
 
-      setCartIds([])
+      if (!directProductId) {
+        localStorage.setItem(CART_KEY, JSON.stringify([]))
+        setCartIds([])
+      }
+
       setBuyerName("")
       setBuyerEmail("")
       setProofFile(null)
@@ -207,7 +218,7 @@ export default function CheckoutPage() {
           <div className="rounded-[30px] border border-slate-200/70 bg-white/90 p-12 text-center shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
             <p className="text-lg font-semibold text-slate-500">Loading checkout...</p>
           </div>
-        ) : cartProducts.length === 0 ? (
+        ) : checkoutProducts.length === 0 ? (
           <div className="rounded-[30px] border border-slate-200/70 bg-white/90 p-12 text-center shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
             <p className="text-lg font-semibold text-slate-500">No items in checkout.</p>
           </div>
@@ -227,7 +238,7 @@ export default function CheckoutPage() {
               </div>
 
               <div className="space-y-4">
-                {cartProducts.map((product) => (
+                {checkoutProducts.map((product) => (
                   <div
                     key={product.id}
                     className="flex flex-col gap-4 rounded-[26px] border border-slate-200/80 bg-slate-50/80 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
