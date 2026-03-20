@@ -216,7 +216,6 @@ export default function Home() {
   const [modalGrade, setModalGrade] = useState<string | null>(null)
   const [folderPulse, setFolderPulse] = useState<string | null>(null)
   const [folderWhoosh, setFolderWhoosh] = useState(false)
-  const [isFeaturedPaused, setIsFeaturedPaused] = useState(false)
 
   const triggerFolderFeel = (key: string) => {
     setFolderPulse(key)
@@ -297,14 +296,14 @@ export default function Home() {
   const featuredProducts = products.slice(0, 6)
 
   useEffect(() => {
-    if (featuredProducts.length <= 1 || isFeaturedPaused) return
+    if (featuredProducts.length <= 1) return
 
     const interval = setInterval(() => {
       setFeaturedIndex((prev) => (prev === featuredProducts.length - 1 ? 0 : prev + 1))
-    }, 4200)
+    }, 3400)
 
     return () => clearInterval(interval)
-  }, [featuredProducts.length, isFeaturedPaused])
+  }, [featuredProducts.length])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -646,182 +645,187 @@ export default function Home() {
                 </div>
 
                 <div className="hidden lg:block">
-                  <div
-                    className="featured-shell group relative overflow-hidden rounded-[34px] border border-white/55 bg-[linear-gradient(145deg,rgba(255,253,250,0.82),rgba(248,244,238,0.72))] p-5 shadow-[0_26px_90px_rgba(15,23,42,0.12)] backdrop-blur-2xl transition duration-500 hover:-translate-y-2"
-                    onMouseEnter={() => setIsFeaturedPaused(true)}
-                    onMouseLeave={() => setIsFeaturedPaused(false)}
-                  >
-                    <div className="pointer-events-none absolute -right-10 top-8 h-44 w-44 rounded-full bg-violet-300/18 blur-3xl" />
-                    <div className="pointer-events-none absolute -left-8 bottom-8 h-40 w-40 rounded-full bg-amber-300/18 blur-3xl" />
-                    <div className="pointer-events-none absolute inset-0 opacity-70 [background:linear-gradient(135deg,rgba(255,255,255,0.38),transparent_34%,transparent_66%,rgba(124,58,237,0.06))]" />
+                  <div className="relative rounded-[34px] border border-stone-200/80 bg-[rgba(255,252,248,0.86)] p-5 shadow-[0_30px_90px_rgba(15,23,42,0.12)] backdrop-blur-2xl">
+                    <div className="pointer-events-none absolute inset-x-10 top-8 h-44 rounded-[32px] bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.14),transparent_65%)] blur-2xl" />
+                    <div className="pointer-events-none absolute right-8 top-14 h-40 w-40 rounded-full bg-fuchsia-300/18 blur-3xl" />
 
-                    <div className="relative rounded-[30px] border border-stone-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(247,243,236,0.95))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_20px_54px_rgba(15,23,42,0.10)]">
-                      <div className="mb-5 flex items-center justify-between gap-4">
+                    <div className="relative rounded-[30px] border border-stone-200 bg-[linear-gradient(180deg,#fffdfa_0%,#f7f4ef_100%)] p-5 shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
+                      <div className="mb-5 flex items-center justify-between">
                         <div>
                           <p className="text-sm font-semibold text-slate-500">Featured Preview</p>
-                          <h3 className="text-[1.9rem] font-black tracking-tight text-slate-900">Teacher Marketplace</h3>
+                          <h3 className="text-2xl font-black text-slate-900">Teacher Marketplace</h3>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700">
-                            <span className="h-2.5 w-2.5 rounded-full bg-violet-500 featured-live-dot" />
-                            Live
-                          </div>
+                        <div className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-2 text-sm font-bold text-violet-700">
+                          <span className="h-2.5 w-2.5 rounded-full bg-violet-500 animate-pulse" />
+                          <span>Live</span>
                         </div>
                       </div>
 
                       {currentFeatured ? (
-                        <div className="rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,#f5f0e8_0%,#eff2f7_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
-                          <div className="relative">
-                            {featuredProducts.length > 1 && (
-                              <>
-                                <button
-                                  onClick={() =>
-                                    setFeaturedIndex((prev) =>
-                                      prev === 0 ? featuredProducts.length - 1 : prev - 1
-                                    )
-                                  }
-                                  className="absolute left-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-slate-700 shadow-lg backdrop-blur transition hover:scale-105 hover:bg-white"
-                                  aria-label="Previous featured product"
-                                >
-                                  ←
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    setFeaturedIndex((prev) =>
-                                      prev === featuredProducts.length - 1 ? 0 : prev + 1
-                                    )
-                                  }
-                                  className="absolute right-3 top-1/2 z-20 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-slate-700 shadow-lg backdrop-blur transition hover:scale-105 hover:bg-white"
-                                  aria-label="Next featured product"
-                                >
-                                  →
-                                </button>
-                              </>
-                            )}
+                        <div className="rounded-[26px] bg-[linear-gradient(180deg,#f7f4ef_0%,#f3f4f7_100%)] p-4">
+                          <div
+                            key={currentFeatured.id}
+                            onClick={() => setSelectedProduct(currentFeatured)}
+                            className="group cursor-pointer overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_20px_48px_rgba(15,23,42,0.12)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(15,23,42,0.16)]"
+                            style={{ animation: "cardFloatIn 0.7s ease" }}
+                          >
+                            <div className="relative overflow-hidden p-4 pb-3">
+                              <div className="pointer-events-none absolute inset-x-10 top-3 h-24 rounded-full bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.10),transparent_60%)] blur-2xl" />
 
-                            <button
-                              key={currentFeatured.id}
-                              onClick={() => setSelectedProduct(currentFeatured)}
-                              className="featured-main-card group/card relative block w-full overflow-hidden rounded-[26px] border border-stone-200 bg-white text-left shadow-[0_22px_60px_rgba(15,23,42,0.12)] transition duration-500 hover:-translate-y-1"
-                              style={{ animation: "featuredCardIn 0.65s cubic-bezier(0.22, 1, 0.36, 1)" }}
-                            >
-                              <div className="absolute inset-0 opacity-0 transition duration-500 group-hover/card:opacity-100 [background:linear-gradient(135deg,rgba(124,58,237,0.06),transparent_35%,rgba(251,191,36,0.06))]" />
-                              <div className="relative overflow-hidden p-4 pb-0">
-                                <div className="relative overflow-hidden rounded-[24px] bg-slate-100 shadow-[0_18px_40px_rgba(15,23,42,0.12)]">
-                                  {currentFeatured.imageUrl ? (
-                                    <img
-                                      src={currentFeatured.imageUrl}
-                                      alt={currentFeatured.title}
-                                      className="h-64 w-full object-cover transition duration-700 group-hover/card:scale-[1.04]"
-                                    />
-                                  ) : (
-                                    <div className="flex h-64 w-full items-center justify-center bg-slate-100 text-slate-400">
-                                      No image
-                                    </div>
-                                  )}
-
-                                  <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-950/50 via-slate-950/15 to-transparent" />
-
-                                  <div className="absolute left-4 top-4 rounded-full border border-white/40 bg-white/88 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-700 shadow">
-                                    Featured Pick
+                              <div className="relative overflow-hidden rounded-[24px] border border-stone-200 bg-white">
+                                {currentFeatured.imageUrl ? (
+                                  <img
+                                    src={currentFeatured.imageUrl}
+                                    alt={currentFeatured.title}
+                                    className="h-[280px] w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                                  />
+                                ) : (
+                                  <div className="flex h-[280px] w-full items-center justify-center bg-slate-100 text-slate-400">
+                                    No image
                                   </div>
+                                )}
 
-                                  <div className="absolute right-4 top-4 flex flex-col items-end gap-2">
-                                    <div className="rounded-full bg-violet-600 px-3 py-1 text-xs font-bold text-white shadow">
-                                      {currentFeatured.grade || "No grade"}
-                                    </div>
+                                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-950/18 to-transparent" />
 
+                                <div className="absolute left-4 top-4 rounded-full bg-white/92 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-slate-700 shadow-sm">
+                                  Featured Pick
+                                </div>
+
+                                <div className="absolute right-4 top-4 rounded-full bg-violet-600 px-3 py-1.5 text-xs font-bold text-white shadow">
+                                  {currentFeatured.grade || "No grade"}
+                                </div>
+
+                                {featuredProducts.length > 1 && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setFeaturedIndex((prev) =>
+                                          prev === 0 ? featuredProducts.length - 1 : prev - 1
+                                        )
+                                      }}
+                                      className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-slate-700 shadow-[0_12px_24px_rgba(15,23,42,0.10)] backdrop-blur transition hover:scale-105 hover:bg-white"
+                                      aria-label="Previous featured product"
+                                    >
+                                      ←
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setFeaturedIndex((prev) =>
+                                          prev === featuredProducts.length - 1 ? 0 : prev + 1
+                                        )
+                                      }}
+                                      className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/85 text-slate-700 shadow-[0_12px_24px_rgba(15,23,42,0.10)] backdrop-blur transition hover:scale-105 hover:bg-white"
+                                      aria-label="Next featured product"
+                                    >
+                                      →
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="px-5 pb-5">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-slate-600">
+                                      {currentFeatured.quarter || "No quarter"}
+                                    </span>
                                     {isBestSeller(currentFeatured) && (
-                                      <div className="rounded-full bg-amber-400 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-amber-950 shadow">
+                                      <span className="rounded-full bg-amber-400 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-950">
                                         Best Seller
-                                      </div>
+                                      </span>
                                     )}
                                   </div>
 
-                                  <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-4">
-                                    <div className="rounded-[18px] border border-white/20 bg-slate-950/35 px-4 py-3 text-white shadow backdrop-blur-md">
-                                      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/70">
-                                        {currentFeatured.quarter || "No quarter"}
-                                      </p>
-                                      <p className="mt-1 text-base font-black">{currentFeatured.title}</p>
-                                    </div>
-                                    <div className="rounded-full bg-white px-4 py-2 text-sm font-black text-slate-900 shadow-lg">
-                                      ₱{currentFeatured.price}
-                                    </div>
-                                  </div>
+                                  <p className="line-clamp-2 text-[1.6rem] font-black leading-tight text-slate-900">
+                                    {currentFeatured.title}
+                                  </p>
+
+                                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
+                                    {currentFeatured.description || "Clean and ready-to-use classroom material."}
+                                  </p>
+                                </div>
+
+                                <div className="shrink-0 rounded-[20px] bg-slate-900 px-4 py-3 text-lg font-black text-white shadow-sm">
+                                  ₱{currentFeatured.price}
                                 </div>
                               </div>
 
-                              <div className="relative p-5 pt-4">
-                                <div className="mb-3 flex flex-wrap items-center gap-2">
-                                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                              <div className="mt-4 flex items-center justify-between gap-4">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
                                     {currentFeatured.likes || 0} likes
                                   </span>
-                                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                                  <span className="rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-700">
                                     {currentFeatured.sold || 0} sold
-                                  </span>
-                                  <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">
-                                    Tap to preview
                                   </span>
                                 </div>
 
-                                <p className="line-clamp-2 text-sm leading-6 text-slate-500">
-                                  {currentFeatured.description || "Clean and ready-to-use classroom material."}
-                                </p>
+                                <div className="rounded-full bg-violet-50 px-3 py-1.5 text-xs font-bold text-violet-700">
+                                  Tap to preview
+                                </div>
                               </div>
-                            </button>
+                            </div>
                           </div>
 
                           {featuredProducts.length > 1 && (
-                            <div className="mt-4 grid grid-cols-3 gap-3">
-                              {featuredProducts.slice(0, 3).map((item, index) => {
-                                const actualIndex = index
-                                const active = featuredIndex === actualIndex
-                                return (
-                                  <button
-                                    key={item.id}
-                                    onClick={() => setFeaturedIndex(actualIndex)}
-                                    className={`overflow-hidden rounded-[18px] border text-left transition duration-300 ${
-                                      active
-                                        ? "scale-[1.02] border-violet-300 bg-white shadow-[0_14px_34px_rgba(124,58,237,0.16)]"
-                                        : "border-stone-200 bg-white/85 hover:-translate-y-1 hover:border-stone-300"
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-3 p-2.5">
-                                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[14px] bg-slate-100">
-                                        {item.imageUrl ? (
-                                          <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" />
+                            <>
+                              <div className="mt-4 grid grid-cols-3 gap-3">
+                                {featuredProducts.slice(0, 3).map((product, index) => {
+                                  const actualIndex = index
+                                  const active = featuredIndex === actualIndex
+
+                                  return (
+                                    <button
+                                      key={product.id}
+                                      onClick={() => setFeaturedIndex(actualIndex)}
+                                      className={`flex items-center gap-3 rounded-[20px] border p-3 text-left transition ${
+                                        active
+                                          ? "border-violet-300 bg-violet-50 shadow-[0_12px_30px_rgba(124,58,237,0.10)]"
+                                          : "border-stone-200 bg-white hover:-translate-y-0.5 hover:shadow-sm"
+                                      }`}
+                                    >
+                                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-[14px] border border-stone-200 bg-slate-100">
+                                        {product.imageUrl ? (
+                                          <img src={product.imageUrl} alt={product.title} className="h-full w-full object-cover" />
                                         ) : (
-                                          <div className="flex h-full w-full items-center justify-center text-[11px] font-bold text-slate-400">
+                                          <div className="flex h-full w-full items-center justify-center text-[10px] text-slate-400">
                                             No image
                                           </div>
                                         )}
                                       </div>
-                                      <div className="min-w-0">
-                                        <p className="truncate text-sm font-black text-slate-900">{item.title}</p>
-                                        <p className="mt-1 text-xs text-slate-500">{item.grade || "No grade"}</p>
-                                        <p className="mt-1 text-xs font-bold text-violet-700">₱{item.price}</p>
-                                      </div>
-                                    </div>
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          )}
 
-                          {featuredProducts.length > 1 && (
-                            <div className="mt-4 flex justify-center gap-2">
-                              {featuredProducts.map((_, index) => (
-                                <button
-                                  key={index}
-                                  onClick={() => setFeaturedIndex(index)}
-                                  className={`h-2.5 rounded-full transition-all ${
-                                    featuredIndex === index ? "w-9 bg-violet-600" : "w-2.5 bg-slate-300"
-                                  }`}
-                                  aria-label={`Show featured product ${index + 1}`}
-                                />
-                              ))}
-                            </div>
+                                      <div className="min-w-0">
+                                        <p className="line-clamp-1 text-sm font-black text-slate-900">
+                                          {product.title}
+                                        </p>
+                                        <p className="mt-0.5 text-xs text-slate-500">{product.grade}</p>
+                                        <p className="mt-1 text-sm font-black text-violet-700">₱{product.price}</p>
+                                      </div>
+                                    </button>
+                                  )
+                                })}
+                              </div>
+
+                              <div className="mt-4 flex items-center justify-center gap-2">
+                                {featuredProducts.map((_, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={() => setFeaturedIndex(index)}
+                                    className={`h-2.5 rounded-full transition-all ${
+                                      featuredIndex === index ? "w-10 bg-violet-600" : "w-2.5 bg-slate-300"
+                                    }`}
+                                    aria-label={`Show featured product ${index + 1}`}
+                                  />
+                                ))}
+                              </div>
+                            </>
                           )}
                         </div>
                       ) : (
@@ -1364,32 +1368,6 @@ export default function Home() {
           }
         }
 
-        @keyframes featuredCardIn {
-          from {
-            opacity: 0;
-            transform: translateY(22px) scale(0.975);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        @keyframes featuredLivePulse {
-          0%, 100% {
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(139,92,246,0.35);
-          }
-          50% {
-            transform: scale(1.1);
-            box-shadow: 0 0 0 10px rgba(139,92,246,0);
-          }
-        }
-
-        .featured-live-dot {
-          animation: featuredLivePulse 1.9s ease-in-out infinite;
-        }
-
         @keyframes folderPanelIn {
           from {
             opacity: 0;
@@ -1444,6 +1422,12 @@ export default function Home() {
             opacity: 0;
             transform: translateY(26px);
             filter: blur(8px);
+          }
+        }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+            filter: blur(0);
           }
         }
 

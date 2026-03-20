@@ -395,17 +395,36 @@ function CheckoutContent() {
                   />
                 </div>
 
-                <div className="rounded-[24px] border border-dashed border-slate-300 bg-slate-50 p-4">
-                  <p className="mb-2 text-sm font-bold text-slate-700">Upload proof of payment</p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-                    className="block w-full text-sm text-slate-600"
-                  />
-                  <p className="mt-2 text-xs text-slate-400">
-                    Max file size: 1MB {proofFile ? `• Selected: ${proofFile.name}` : ""}
-                  </p>
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">
+                    Upload proof of payment
+                  </label>
+
+                  <label className="block cursor-pointer">
+                    <div className="rounded-[24px] border-2 border-dashed border-slate-300 bg-slate-50 p-5 transition hover:border-emerald-400 hover:bg-emerald-50">
+                      <div className="flex flex-col items-start gap-2">
+                        <div className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-bold text-emerald-700 shadow-sm">
+                          Choose file
+                        </div>
+                        <p className="text-sm font-semibold text-slate-800">
+                          Click to upload proof of payment
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          PNG, JPG, or JPEG up to 1MB
+                        </p>
+                        <p className="text-xs text-slate-400">
+                          {proofFile ? `Selected: ${proofFile.name}` : "No file selected"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
 
                 <button
