@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import toast from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
 
@@ -212,24 +212,19 @@ export default function Home() {
   const [loadingProducts, setLoadingProducts] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
-  const gradeFoldersRef = useRef<HTMLElement | null>(null)
-  const productsRef = useRef<HTMLElement | null>(null)
-
-  const scrollToSection = (ref: React.RefObject<HTMLElement | null>) => {
-    window.setTimeout(() => {
-      ref.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-    }, 120)
-  }
+  const [modalQuarter, setModalQuarter] = useState<string | null>(null)
+  const [modalGrade, setModalGrade] = useState<string | null>(null)
 
   const openQuarterFolder = (quarterLabel: string) => {
     setSelectedQuarter(quarterLabel)
     setSelectedGrade(null)
-    scrollToSection(gradeFoldersRef)
+    setModalQuarter(quarterLabel)
+    setModalGrade(null)
   }
 
   const openGradeFolder = (gradeLabel: string) => {
     setSelectedGrade(gradeLabel)
-    scrollToSection(productsRef)
+    setModalGrade(gradeLabel)
   }
 
   useEffect(() => {
@@ -292,20 +287,28 @@ export default function Home() {
   }, [featuredProducts.length])
 
   useEffect(() => {
-    if (!selectedProduct) return
-
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSelectedProduct(null)
+      if (e.key === "Escape") {
+        if (selectedProduct) {
+          setSelectedProduct(null)
+          return
+        }
+
+        if (modalQuarter) {
+          setModalQuarter(null)
+          setModalGrade(null)
+        }
+      }
     }
 
     document.addEventListener("keydown", handleKeyDown)
-    document.body.style.overflow = "hidden"
+    document.body.style.overflow = selectedProduct || modalQuarter ? "hidden" : ""
 
     return () => {
       document.removeEventListener("keydown", handleKeyDown)
       document.body.style.overflow = ""
     }
-  }, [selectedProduct])
+  }, [selectedProduct, modalQuarter])
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -415,7 +418,7 @@ export default function Home() {
 
   return (
     <>
-      <main className="min-h-screen bg-[linear-gradient(180deg,#f8fbff_0%,#eef4ff_22%,#f9fbff_48%,#f5f7ff_100%)] text-slate-900">
+      <main className={`min-h-screen bg-[linear-gradient(180deg,#f8fbff_0%,#eef4ff_22%,#f9fbff_48%,#f5f7ff_100%)] text-slate-900 transition duration-300 ${modalQuarter ? "scale-[0.985] blur-[2px]" : ""}`}>
         <section className="relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_12%,rgba(124,58,237,0.18),transparent_28%),radial-gradient(circle_at_85%_15%,rgba(236,72,153,0.14),transparent_26%),radial-gradient(circle_at_78%_72%,rgba(59,130,246,0.14),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.96),rgba(243,247,255,0.92))]" />
           <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-violet-400/15 blur-3xl" />
@@ -799,271 +802,244 @@ export default function Home() {
           </div>
         </section>
 
-        {selectedQuarter && (
-          <section ref={gradeFoldersRef} className="mx-auto max-w-7xl scroll-mt-40 px-4 pb-12 md:px-6">
-            <div className="rounded-[32px] border border-white bg-white/90 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur-xl">
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-emerald-700">
-                      Open folder
-                    </span>
-                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                      {selectedQuarter}
-                    </span>
-                  </div>
+        
+      </main>
 
-                  <h3 className="text-3xl font-black text-slate-900">Grade Folders</h3>
-                  <p className="mt-2 text-slate-600">
-                    Pick a grade folder to show the products inside {selectedQuarter}.
-                  </p>
+      
+      {modalQuarter && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/30 px-4 py-6 backdrop-blur-md"
+          style={{ animation: "modalFadeIn 0.24s ease-out" }}
+          onClick={() => {
+            setModalQuarter(null)
+            setModalGrade(null)
+          }}
+        >
+          <div
+            className="relative w-full max-w-6xl overflow-hidden rounded-[34px] border border-white/70 bg-white/82 shadow-[0_36px_120px_rgba(15,23,42,0.22)] backdrop-blur-2xl"
+            style={{ animation: "folderPanelIn 0.34s cubic-bezier(0.22, 1, 0.36, 1)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="pointer-events-none absolute left-10 right-24 top-0 h-10 rounded-b-[20px] bg-gradient-to-b from-violet-200 to-fuchsia-100 opacity-80" />
+            <div className="relative flex items-center justify-between border-b border-slate-200/80 bg-white/70 px-5 pb-4 pt-7 md:px-8">
+              <div>
+                <div className="flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                  <span className="rounded-full bg-violet-100 px-3 py-1 text-violet-700">Open Folder</span>
+                  <span>{modalQuarter}</span>
+                  {modalGrade && (
+                    <>
+                      <span>/</span>
+                      <span>{modalGrade}</span>
+                    </>
+                  )}
                 </div>
-
-                <button
-                  onClick={() => {
-                    setSelectedQuarter(null)
-                    setSelectedGrade(null)
-                  }}
-                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 font-bold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Back to Quarters
-                </button>
+                <h3 className="mt-2 text-2xl font-black text-slate-900 md:text-3xl">
+                  {modalGrade ? `${modalGrade} Files` : `${modalQuarter} Grade Folders`}
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  {modalGrade
+                    ? "Browse the files inside this grade folder."
+                    : "Choose a grade folder to reveal the files inside."}
+                </p>
               </div>
 
-              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-                {grades.map((grade) => {
-                  const gradeCount = getGradeCount(selectedQuarter, grade)
-                  const preview = getGradePreviewProducts(products, selectedQuarter, grade)[0]
-                  const active = selectedGrade === grade
+              <div className="flex items-center gap-3">
+                {modalGrade && (
+                  <button
+                    onClick={() => setModalGrade(null)}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Back to Grades
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setModalQuarter(null)
+                    setModalGrade(null)
+                  }}
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+                  aria-label="Close folder modal"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
 
-                  return (
-                    <button
-                      key={grade}
-                      onClick={() => openGradeFolder(grade)}
-                      className="text-left"
-                    >
-                      <FolderShell active={active} color="violet" className="h-full">
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                          <h4 className="text-xl font-black text-slate-900">{grade}</h4>
-                          {active && (
+            <div className="max-h-[78vh] overflow-y-auto px-5 py-5 md:px-8 md:py-7">
+              {!modalGrade ? (
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                  {grades.map((grade) => {
+                    const gradeCount = getGradeCount(modalQuarter, grade)
+                    const preview = getGradePreviewProducts(products, modalQuarter, grade)[0]
+
+                    return (
+                      <button
+                        key={grade}
+                        onClick={() => openGradeFolder(grade)}
+                        className="text-left"
+                      >
+                        <FolderShell color="violet" className="h-full">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <h4 className="text-xl font-black text-slate-900">{grade}</h4>
                             <span className="rounded-full bg-violet-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white">
                               Open
                             </span>
-                          )}
-                        </div>
+                          </div>
 
-                        <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white">
-                          {preview?.imageUrl ? (
-                            <img src={preview.imageUrl} alt={grade} className="h-24 w-full object-cover" />
-                          ) : (
-                            <div className="flex h-24 items-center justify-center text-sm font-semibold text-slate-400">
-                              No preview yet
-                            </div>
-                          )}
-                        </div>
+                          <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white">
+                            {preview?.imageUrl ? (
+                              <img src={preview.imageUrl} alt={grade} className="h-24 w-full object-cover" />
+                            ) : (
+                              <div className="flex h-24 items-center justify-center text-sm font-semibold text-slate-400">
+                                No preview yet
+                              </div>
+                            )}
+                          </div>
 
-                        <div className="mt-3 flex items-center justify-between text-sm">
-                          <span className="rounded-full bg-slate-900 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-white">
-                            {gradeCount} {gradeCount === 1 ? "item" : "items"}
-                          </span>
-                          <span className="font-bold text-slate-500">Open →</span>
-                        </div>
-                      </FolderShell>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </section>
-        )}
-
-        <section id="marketplace" ref={productsRef} className="mx-auto max-w-7xl scroll-mt-40 px-4 pb-16 md:px-6">
-          <div className="rounded-[32px] border border-white bg-white/90 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
-            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-500">
-                  Storefront
-                </p>
-                <h2 className="mt-2 text-4xl font-black tracking-tight text-slate-900">
-                  Product Collection
-                </h2>
-                <p className="mt-2 text-slate-600">
-                  Quarter folder first. Grade folder next. Then choose your file.
-                </p>
-              </div>
-
-              <a
-                href="/cart"
-                className="inline-flex items-center gap-2 rounded-2xl px-5 py-3 font-bold text-white transition hover:scale-[1.02]"
-                style={{
-                  background: "linear-gradient(135deg, #7c3aed, #ec4899)",
-                  boxShadow: "0 18px 36px rgba(124,58,237,0.22)",
-                }}
-              >
-                <CartIcon className="h-5 w-5" />
-                <span>View Cart ({cart.length})</span>
-              </a>
-            </div>
-
-            {loadingProducts ? (
-              <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50 p-12 text-center text-slate-500">
-                Loading products...
-              </div>
-            ) : loadError ? (
-              <div className="rounded-[28px] border border-red-200 bg-red-50 p-12 text-center text-red-600">
-                Failed to load products: {loadError}
-              </div>
-            ) : (
-              <>
-                <div className="mb-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <p className="mb-2 text-sm font-bold uppercase tracking-[0.18em] text-violet-500">Files inside the folder</p>
-                  <h3 className="text-2xl font-black text-slate-900">
-                    {selectedQuarter ? selectedQuarter : "All Quarters"}{" "}
-                    <span className="text-slate-300">/</span>{" "}
-                    {selectedGrade ? selectedGrade : "All Grades"}
-                  </h3>
-                  <p className="mt-1 text-slate-500">
-                    {selectedQuarter || selectedGrade
-                      ? "Products inside the open folder"
-                      : "Showing all available products"}
-                  </p>
+                          <div className="mt-3 flex items-center justify-between text-sm">
+                            <span className="rounded-full bg-slate-900 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-white">
+                              {gradeCount} {gradeCount === 1 ? "item" : "items"}
+                            </span>
+                            <span className="font-bold text-slate-500">Open →</span>
+                          </div>
+                        </FolderShell>
+                      </button>
+                    )
+                  })}
                 </div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50 p-12 text-center text-slate-500">
+                  No files found inside this folder.
+                </div>
+              ) : (
+                <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                  {filteredProducts.map((product) => (
+                    <div
+                      key={product.id}
+                      className="group relative overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_24px_70px_rgba(15,23,42,0.14)]"
+                    >
+                      <button onClick={() => setSelectedProduct(product)} className="block w-full text-left">
+                        <div className="relative overflow-hidden">
+                          {product.imageUrl ? (
+                            <img
+                              src={product.imageUrl}
+                              alt={product.title}
+                              className="h-60 w-full object-cover transition duration-500 group-hover:scale-105"
+                            />
+                          ) : (
+                            <div className="flex h-60 w-full items-center justify-center bg-slate-100 text-slate-400">
+                              No image
+                            </div>
+                          )}
 
-                {filteredProducts.length === 0 ? (
-                  <div className="rounded-[28px] border border-dashed border-slate-200 bg-slate-50 p-12 text-center text-slate-500">
-                    No products found.
-                  </div>
-                ) : (
-                  <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                    {filteredProducts.map((product) => (
-                      <div
-                        key={product.id}
-                        className="group relative overflow-hidden rounded-[30px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_24px_70px_rgba(15,23,42,0.14)]"
-                      >
-                        <button onClick={() => setSelectedProduct(product)} className="block w-full text-left">
-                          <div className="relative overflow-hidden">
-                            {product.imageUrl ? (
-                              <img
-                                src={product.imageUrl}
-                                alt={product.title}
-                                className="h-60 w-full object-cover transition duration-500 group-hover:scale-105"
-                              />
-                            ) : (
-                              <div className="flex h-60 w-full items-center justify-center bg-slate-100 text-slate-400">
-                                No image
+                          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950/40 to-transparent" />
+
+                          <div className="absolute right-4 top-4 flex flex-col items-end gap-2">
+                            <div className="rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-slate-900 shadow">
+                              {product.grade || "No grade"}
+                            </div>
+
+                            {isBestSeller(product) && (
+                              <div className="rounded-full bg-amber-400 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-amber-950 shadow-lg">
+                                Best Seller
                               </div>
                             )}
+                          </div>
+                        </div>
 
-                            <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950/40 to-transparent" />
-
-                            <div className="absolute right-4 top-4 flex flex-col items-end gap-2">
-                              <div className="rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-slate-900 shadow">
-                                {product.grade || "No grade"}
-                              </div>
-
-                              {isBestSeller(product) && (
-                                <div className="rounded-full bg-amber-400 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-amber-950 shadow-lg">
-                                  Best Seller
-                                </div>
-                              )}
-                            </div>
+                        <div className="p-5">
+                          <div className="mb-2 flex items-start justify-between gap-3">
+                            <h4 className="text-2xl font-black leading-tight text-slate-900">
+                              {product.title}
+                            </h4>
                           </div>
 
-                          <div className="p-5">
-                            <div className="mb-2 flex items-start justify-between gap-3">
-                              <h4 className="text-2xl font-black leading-tight text-slate-900">
-                                {product.title}
-                              </h4>
-                            </div>
+                          {product.description && (
+                            <p className="mb-4 line-clamp-2 text-sm leading-6 text-slate-500">
+                              {product.description}
+                            </p>
+                          )}
 
-                            {product.description && (
-                              <p className="mb-4 line-clamp-2 text-sm leading-6 text-slate-500">
-                                {product.description}
-                              </p>
-                            )}
-
-                            <div className="mb-4 flex flex-wrap items-center gap-2">
-                              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
-                                {product.likes || 0} likes
-                              </span>
-                              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
-                                {product.sold || 0} sold
-                              </span>
-                              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
-                                {product.quarter || "No quarter"}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                              <span className="text-3xl font-black text-slate-900">₱{product.price}</span>
-                              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
-                                View Details
-                              </span>
-                            </div>
+                          <div className="mb-4 flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                              {product.likes || 0} likes
+                            </span>
+                            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                              {product.sold || 0} sold
+                            </span>
+                            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                              {product.quarter || "No quarter"}
+                            </span>
                           </div>
-                        </button>
 
-                        <div className="border-t border-slate-200 px-5 pb-5 pt-4">
-                          <div className="mb-5 flex items-center gap-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-3xl font-black text-slate-900">₱{product.price}</span>
+                            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                              View Details
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+
+                      <div className="border-t border-slate-200 px-5 pb-5 pt-4">
+                        <div className="mb-5 flex items-center gap-3">
+                          <button
+                            onClick={() => toggleLike(product.id)}
+                            className={`heart-press flex h-12 w-12 items-center justify-center rounded-full border shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_12px_24px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-105 active:scale-95 ${
+                              hasLiked(product.id)
+                                ? "border-pink-200 bg-[linear-gradient(180deg,#ffe4ef,#ffc9dd)] text-pink-600 shadow-[inset_0_2px_0_rgba(255,255,255,0.75),0_8px_16px_rgba(236,72,153,0.18)]"
+                                : "border-slate-200 bg-[linear-gradient(180deg,#ffffff,#eef2ff)] text-slate-500 shadow-[inset_0_2px_0_rgba(255,255,255,0.85),0_8px_16px_rgba(15,23,42,0.08)]"
+                            } ${animatingHeart === product.id ? "heart-pop" : ""}`}
+                            aria-label="Like product"
+                          >
+                            <HeartIcon className="h-5 w-5" filled={hasLiked(product.id)} />
+                          </button>
+
+                          <span className="text-sm font-semibold text-slate-500">{product.likes || 0}</span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          {!hasPurchased(product.id) && (
                             <button
-                              onClick={() => toggleLike(product.id)}
-                              className={`heart-press flex h-12 w-12 items-center justify-center rounded-full border shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_12px_24px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-105 active:scale-95 ${
-                                hasLiked(product.id)
-                                  ? "border-pink-200 bg-[linear-gradient(180deg,#ffe4ef,#ffc9dd)] text-pink-600 shadow-[inset_0_2px_0_rgba(255,255,255,0.75),0_8px_16px_rgba(236,72,153,0.18)]"
-                                  : "border-slate-200 bg-[linear-gradient(180deg,#ffffff,#eef2ff)] text-slate-500 shadow-[inset_0_2px_0_rgba(255,255,255,0.85),0_8px_16px_rgba(15,23,42,0.08)]"
-                              } ${animatingHeart === product.id ? "heart-pop" : ""}`}
-                              aria-label="Like product"
+                              onClick={() => addToCart(product)}
+                              className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 font-bold text-white transition ${
+                                isInCart(product.id)
+                                  ? "bg-slate-500"
+                                  : "bg-amber-500 hover:bg-amber-600"
+                              }`}
                             >
-                              <HeartIcon className="h-5 w-5" filled={hasLiked(product.id)} />
+                              <CartIcon className="h-4 w-4" />
+                              <span>{isInCart(product.id) ? "In Cart" : "Add to Cart"}</span>
                             </button>
+                          )}
 
-                            <span className="text-sm font-semibold text-slate-500">{product.likes || 0}</span>
-                          </div>
-
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            {!hasPurchased(product.id) && (
-                              <button
-                                onClick={() => addToCart(product)}
-                                className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2 font-bold text-white transition ${
-                                  isInCart(product.id)
-                                    ? "bg-slate-500"
-                                    : "bg-amber-500 hover:bg-amber-600"
-                                }`}
-                              >
-                                <CartIcon className="h-4 w-4" />
-                                <span>{isInCart(product.id) ? "In Cart" : "Add to Cart"}</span>
-                              </button>
-                            )}
-
-                            {hasPurchased(product.id) ? (
-                              <button
-                                onClick={() => downloadProduct(product)}
-                                disabled={downloadingId === product.id}
-                                className="rounded-2xl bg-emerald-600 px-4 py-2 font-bold text-white hover:bg-emerald-700 disabled:opacity-70"
-                              >
-                                {downloadingId === product.id ? "Preparing..." : "Download"}
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => buyNow(product)}
-                                className="rounded-2xl bg-slate-900 px-4 py-2 font-bold text-white transition hover:bg-slate-800"
-                              >
-                                Buy Now
-                              </button>
-                            )}
-                          </div>
+                          {hasPurchased(product.id) ? (
+                            <button
+                              onClick={() => downloadProduct(product)}
+                              disabled={downloadingId === product.id}
+                              className="rounded-2xl bg-emerald-600 px-4 py-2 font-bold text-white hover:bg-emerald-700 disabled:opacity-70"
+                            >
+                              {downloadingId === product.id ? "Preparing..." : "Download"}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => buyNow(product)}
+                              className="rounded-2xl bg-slate-900 px-4 py-2 font-bold text-white transition hover:bg-slate-800"
+                            >
+                              Buy Now
+                            </button>
+                          )}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </section>
-      </main>
-
-      {selectedProduct && (
+        </div>
+      )}
+{selectedProduct && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 px-4 py-6 backdrop-blur-md"
           style={{ animation: "modalFadeIn 0.22s ease-out" }}
@@ -1229,6 +1205,17 @@ export default function Home() {
           from {
             opacity: 0;
             transform: translateY(16px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes folderPanelIn {
+          from {
+            opacity: 0;
+            transform: translateY(28px) scale(0.94);
           }
           to {
             opacity: 1;
