@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
@@ -86,6 +85,117 @@ function HeartIcon({
         strokeLinejoin="round"
       />
     </svg>
+  )
+}
+
+function FolderShell({
+  children,
+  active = false,
+  color = "amber",
+  className = "",
+}: {
+  children: React.ReactNode
+  active?: boolean
+  color?: "amber" | "violet"
+  className?: string
+}) {
+  const [style, setStyle] = useState({
+    rotateX: 0,
+    rotateY: 0,
+    translateY: 0,
+    glareX: 50,
+    glareY: 50,
+  })
+
+  const palette =
+    color === "amber"
+      ? {
+          shell:
+            "border-[#e4bb69] bg-gradient-to-b from-[#ffd86b] via-[#f8c650] to-[#f1b63b]",
+          tab:
+            "border-[#deb15d] bg-gradient-to-b from-[#ffe188] to-[#f5c24a]",
+          inner:
+            "border-white/45 bg-white/28",
+          shadow:
+            "shadow-[0_18px_50px_rgba(245,158,11,0.16)]",
+        }
+      : {
+          shell:
+            "border-violet-200 bg-gradient-to-b from-violet-100 via-fuchsia-50 to-white",
+          tab:
+            "border-violet-200 bg-gradient-to-b from-violet-200 to-fuchsia-100",
+          inner:
+            "border-violet-100 bg-white/80",
+          shadow:
+            "shadow-[0_18px_50px_rgba(124,58,237,0.12)]",
+        }
+
+  const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const px = x / rect.width
+    const py = y / rect.height
+
+    setStyle({
+      rotateX: (0.5 - py) * 10,
+      rotateY: (px - 0.5) * 14,
+      translateY: -8,
+      glareX: px * 100,
+      glareY: py * 100,
+    })
+  }
+
+  const reset = () => {
+    setStyle({
+      rotateX: 0,
+      rotateY: 0,
+      translateY: 0,
+      glareX: 50,
+      glareY: 50,
+    })
+  }
+
+  return (
+    <div
+      className={`group relative [perspective:1600px] ${className}`}
+      onMouseMove={handleMove}
+      onMouseLeave={reset}
+    >
+      <div
+        className="pointer-events-none absolute inset-x-8 top-3 h-10 rounded-full bg-slate-900/10 blur-2xl transition duration-300 group-hover:scale-105"
+        style={{ transform: `translateY(${active ? 10 : 16}px)` }}
+      />
+      <div
+        className={`relative transition-transform duration-300 will-change-transform ${palette.shadow}`}
+        style={{
+          transform: `rotateX(${style.rotateX}deg) rotateY(${style.rotateY}deg) translateY(${style.translateY}px)`,
+          transformStyle: "preserve-3d",
+        }}
+      >
+        <div
+          className={`pointer-events-none absolute left-5 right-10 top-[-14px] h-11 rounded-t-[22px] border border-b-0 ${palette.tab} transition duration-300`}
+          style={{
+            transform: `translateZ(26px) rotateX(${active ? 18 : 30}deg) translateY(${active ? -7 : -3}px)`,
+            transformOrigin: "bottom center",
+          }}
+        />
+        <div
+          className={`relative overflow-hidden rounded-[30px] border p-4 md:p-5 ${palette.shell}`}
+          style={{ transform: "translateZ(0px)" }}
+        >
+          <div
+            className="pointer-events-none absolute inset-0 opacity-80"
+            style={{
+              background: `radial-gradient(circle at ${style.glareX}% ${style.glareY}%, rgba(255,255,255,0.55), transparent 34%)`,
+            }}
+          />
+          <div className={`relative rounded-[24px] border p-4 md:p-5 ${palette.inner}`}>
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -624,7 +734,7 @@ export default function Home() {
               </h2>
             </div>
             <p className="max-w-xl text-sm leading-7 text-slate-600">
-              Keep your quarter folders. Hover to open the folder lid, then click to reveal the grade folders inside.
+              Keep your quarter folders. Hover each folder to feel the lid lift, the body tilt, and the surface catch light like a real folder before you open it.
             </p>
           </div>
 
@@ -638,62 +748,51 @@ export default function Home() {
                 <button
                   key={quarter.code}
                   onClick={() => openQuarterFolder(quarter.label)}
-                  className="group text-left"
+                  className="text-left"
                 >
-                  <div className={`relative rounded-[34px] border p-5 transition-all duration-500 ${
-                    isActive
-                      ? "border-violet-300 bg-white shadow-[0_28px_80px_rgba(124,58,237,0.16)]"
-                      : "border-white bg-white/85 shadow-[0_18px_50px_rgba(15,23,42,0.08)] hover:-translate-y-2 hover:shadow-[0_24px_70px_rgba(15,23,42,0.12)]"
-                  }`}>
-                    <div
-                      className={`absolute left-6 right-6 top-[-12px] h-10 rounded-t-[22px] border border-b-0 border-[#d8b062] bg-gradient-to-b from-[#ffd87a] to-[#f4ba39] shadow-[0_10px_25px_rgba(245,158,11,0.18)] transition-all duration-500 ${
-                        isActive ? "translate-y-[-2px]" : "group-hover:translate-y-[-12px]"
-                      }`}
-                    />
-                    <div className="relative rounded-[28px] border border-[#e6bc68] bg-gradient-to-b from-[#ffd867] to-[#f7bf3c] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]">
-                      <div className="mb-4 flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-black uppercase tracking-[0.2em] text-amber-900/70">
-                            {quarter.code}
-                          </p>
-                          <h3 className="mt-1 text-3xl font-black text-amber-950">{quarter.name}</h3>
-                        </div>
-                        {isActive && (
-                          <span className="rounded-full bg-violet-600 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-white shadow">
-                            Active
-                          </span>
+                  <FolderShell active={isActive} color="amber">
+                    <div className="mb-4 flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-black uppercase tracking-[0.2em] text-amber-900/70">
+                          {quarter.code}
+                        </p>
+                        <h3 className="mt-1 text-3xl font-black text-amber-950">{quarter.name}</h3>
+                      </div>
+                      {isActive && (
+                        <span className="rounded-full bg-violet-600 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-white shadow">
+                          Active
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="rounded-[24px] bg-white/30 p-3 backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
+                      <div className="grid grid-cols-2 gap-3">
+                        {previewItems.length > 0 ? (
+                          previewItems.map((item) => (
+                            <div key={item.id} className="overflow-hidden rounded-[18px] border border-white/40 bg-white/55 shadow-sm">
+                              <img src={item.imageUrl} alt={item.title} className="h-28 w-full object-cover" />
+                            </div>
+                          ))
+                        ) : (
+                          <>
+                            <div className="flex h-28 items-center justify-center rounded-[18px] border border-dashed border-amber-900/10 bg-white/35 text-sm font-semibold text-amber-950/50">
+                              No preview
+                            </div>
+                            <div className="flex h-28 items-center justify-center rounded-[18px] border border-dashed border-amber-900/10 bg-white/35 text-sm font-semibold text-amber-950/50">
+                              No preview
+                            </div>
+                          </>
                         )}
                       </div>
-
-                      <div className="rounded-[24px] bg-white/30 p-3 backdrop-blur-sm">
-                        <div className="grid grid-cols-2 gap-3">
-                          {previewItems.length > 0 ? (
-                            previewItems.map((item) => (
-                              <div key={item.id} className="overflow-hidden rounded-[18px] border border-white/40 bg-white/55 shadow-sm">
-                                <img src={item.imageUrl} alt={item.title} className="h-28 w-full object-cover" />
-                              </div>
-                            ))
-                          ) : (
-                            <>
-                              <div className="flex h-28 items-center justify-center rounded-[18px] border border-dashed border-amber-900/10 bg-white/35 text-sm font-semibold text-amber-950/50">
-                                No preview
-                              </div>
-                              <div className="flex h-28 items-center justify-center rounded-[18px] border border-dashed border-amber-900/10 bg-white/35 text-sm font-semibold text-amber-950/50">
-                                No preview
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="mt-4 flex items-center justify-between gap-3">
-                        <span className="rounded-full bg-amber-950 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-amber-50">
-                          {quarterCount} {quarterCount === 1 ? "Product" : "Products"}
-                        </span>
-                        <span className="font-bold text-amber-950">Open folder →</span>
-                      </div>
                     </div>
-                  </div>
+
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <span className="rounded-full bg-amber-950 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-amber-50">
+                        {quarterCount} {quarterCount === 1 ? "Product" : "Products"}
+                      </span>
+                      <span className="font-bold text-amber-950">Open folder →</span>
+                    </div>
+                  </FolderShell>
                 </button>
               )
             })}
@@ -741,42 +840,35 @@ export default function Home() {
                     <button
                       key={grade}
                       onClick={() => openGradeFolder(grade)}
-                      className="group text-left"
+                      className="text-left"
                     >
-                      <div className={`relative rounded-[28px] border p-4 transition-all duration-300 ${
-                        active
-                          ? "border-violet-300 bg-violet-50 shadow-[0_20px_60px_rgba(124,58,237,0.14)]"
-                          : "border-slate-200 bg-white hover:-translate-y-1 hover:shadow-[0_18px_50px_rgba(15,23,42,0.08)]"
-                      }`}>
-                        <div className="absolute left-5 top-[-8px] h-7 w-14 rounded-t-[14px] bg-violet-200" />
-                        <div className="rounded-[22px] border border-slate-200/80 bg-slate-50 p-4">
-                          <div className="mb-3 flex items-center justify-between gap-3">
-                            <h4 className="text-xl font-black text-slate-900">{grade}</h4>
-                            {active && (
-                              <span className="rounded-full bg-violet-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white">
-                                Open
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white">
-                            {preview?.imageUrl ? (
-                              <img src={preview.imageUrl} alt={grade} className="h-24 w-full object-cover" />
-                            ) : (
-                              <div className="flex h-24 items-center justify-center text-sm font-semibold text-slate-400">
-                                No preview yet
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="mt-3 flex items-center justify-between text-sm">
-                            <span className="rounded-full bg-slate-900 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-white">
-                              {gradeCount} {gradeCount === 1 ? "item" : "items"}
+                      <FolderShell active={active} color="violet" className="h-full">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <h4 className="text-xl font-black text-slate-900">{grade}</h4>
+                          {active && (
+                            <span className="rounded-full bg-violet-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white">
+                              Open
                             </span>
-                            <span className="font-bold text-slate-500">Open →</span>
-                          </div>
+                          )}
                         </div>
-                      </div>
+
+                        <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white">
+                          {preview?.imageUrl ? (
+                            <img src={preview.imageUrl} alt={grade} className="h-24 w-full object-cover" />
+                          ) : (
+                            <div className="flex h-24 items-center justify-center text-sm font-semibold text-slate-400">
+                              No preview yet
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between text-sm">
+                          <span className="rounded-full bg-slate-900 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-white">
+                            {gradeCount} {gradeCount === 1 ? "item" : "items"}
+                          </span>
+                          <span className="font-bold text-slate-500">Open →</span>
+                        </div>
+                      </FolderShell>
                     </button>
                   )
                 })}
