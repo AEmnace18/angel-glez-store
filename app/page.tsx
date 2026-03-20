@@ -214,8 +214,24 @@ export default function Home() {
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
   const [modalQuarter, setModalQuarter] = useState<string | null>(null)
   const [modalGrade, setModalGrade] = useState<string | null>(null)
+  const [folderPulse, setFolderPulse] = useState<string | null>(null)
+  const [folderWhoosh, setFolderWhoosh] = useState(false)
+
+  const triggerFolderFeel = (key: string) => {
+    setFolderPulse(key)
+    setFolderWhoosh(true)
+
+    window.setTimeout(() => {
+      setFolderPulse(null)
+    }, 360)
+
+    window.setTimeout(() => {
+      setFolderWhoosh(false)
+    }, 260)
+  }
 
   const openQuarterFolder = (quarterLabel: string) => {
+    triggerFolderFeel(`quarter-${quarterLabel}`)
     setSelectedQuarter(quarterLabel)
     setSelectedGrade(null)
     setModalQuarter(quarterLabel)
@@ -223,6 +239,9 @@ export default function Home() {
   }
 
   const openGradeFolder = (gradeLabel: string) => {
+    if (modalQuarter) {
+      triggerFolderFeel(`grade-${modalQuarter}-${gradeLabel}`)
+    }
     setSelectedGrade(gradeLabel)
     setModalGrade(gradeLabel)
   }
@@ -751,7 +770,7 @@ export default function Home() {
                 <button
                   key={quarter.code}
                   onClick={() => openQuarterFolder(quarter.label)}
-                  className="text-left"
+                  className={`text-left transition-transform duration-200 ${folderPulse === `quarter-${quarter.label}` ? "folder-click-bounce" : ""}`}
                 >
                   <FolderShell active={isActive} color="amber">
                     <div className="mb-4 flex items-start justify-between gap-3">
@@ -820,6 +839,11 @@ export default function Home() {
             style={{ animation: "folderPanelIn 0.34s cubic-bezier(0.22, 1, 0.36, 1)" }}
             onClick={(e) => e.stopPropagation()}
           >
+            {folderWhoosh && (
+              <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+                <div className="folder-whoosh absolute inset-y-0 -left-1/3 w-1/2 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.7),transparent)]" />
+              </div>
+            )}
             <div
               className="pointer-events-none absolute left-10 right-24 top-0 z-10 h-10 rounded-b-[20px] border border-violet-200/70 border-t-0 bg-gradient-to-b from-violet-200 via-fuchsia-100 to-violet-50 opacity-95 shadow-[0_10px_24px_rgba(124,58,237,0.14)]"
               style={{
@@ -883,7 +907,7 @@ export default function Home() {
                       <button
                         key={grade}
                         onClick={() => openGradeFolder(grade)}
-                        className="text-left"
+                        className={`text-left transition-transform duration-200 ${folderPulse === `grade-${modalQuarter}-${grade}` ? "folder-click-bounce" : ""}`}
                       >
                         <FolderShell color="violet" className="h-full">
                           <div className="mb-3 flex items-center justify-between gap-3">
@@ -1064,13 +1088,35 @@ export default function Home() {
             style={{ animation: "modalScaleIn 0.28s cubic-bezier(0.22, 1, 0.36, 1)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              onClick={() => setSelectedProduct(null)}
-              className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
-              aria-label="Close modal"
-            >
-              ✕
-            </button>
+            <div className="absolute right-4 top-4 z-20 flex items-center gap-3">
+              <button
+                onClick={() => {
+                  if (selectedProduct?.quarter) {
+                    setSelectedQuarter(selectedProduct.quarter)
+                    setModalQuarter(selectedProduct.quarter)
+                  }
+
+                  if (selectedProduct?.grade) {
+                    setSelectedGrade(selectedProduct.grade)
+                    setModalGrade(selectedProduct.grade)
+                    triggerFolderFeel(`grade-${selectedProduct.quarter}-${selectedProduct.grade}`)
+                  }
+
+                  setSelectedProduct(null)
+                }}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                Back to Folder
+              </button>
+
+              <button
+                onClick={() => setSelectedProduct(null)}
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
+            </div>
 
             <div className="grid max-h-[90vh] overflow-y-auto lg:grid-cols-[1.05fr_0.95fr]">
               <div className="p-4 md:p-6">
@@ -1266,6 +1312,36 @@ export default function Home() {
           45% { transform: scale(1.34) translateY(-4px) rotate(6deg); filter: drop-shadow(0 12px 22px rgba(244,63,94,0.28)); }
           70% { transform: scale(0.95) translateY(0) rotate(-2deg); }
           100% { transform: scale(1) translateY(0) rotate(0deg); filter: drop-shadow(0 6px 12px rgba(244,63,94,0.14)); }
+        }
+
+
+        @keyframes folderClickBounce {
+          0% { transform: scale(1); }
+          35% { transform: scale(1.035) translateY(-4px); }
+          70% { transform: scale(0.992); }
+          100% { transform: scale(1); }
+        }
+
+        @keyframes folderWhoosh {
+          0% {
+            opacity: 0;
+            transform: translateX(0) skewX(-18deg);
+          }
+          20% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(240%) skewX(-18deg);
+          }
+        }
+
+        .folder-click-bounce {
+          animation: folderClickBounce 0.34s cubic-bezier(.22,1,.36,1);
+        }
+
+        .folder-whoosh {
+          animation: folderWhoosh 0.42s cubic-bezier(.22,1,.36,1);
         }
 
         .heart-pop {
