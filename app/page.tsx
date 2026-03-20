@@ -543,7 +543,7 @@ export default function Home() {
                         Quarters
                       </a>
                       <a
-                        href="#marketplace"
+                        href="/shop"
                         className="rounded-2xl px-2 py-2 text-center text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
                       >
                         Shop
@@ -583,10 +583,10 @@ export default function Home() {
                   <h1 className="max-w-4xl text-5xl font-black leading-[0.98] tracking-tight text-slate-900 md:text-7xl">
                     <span className="hero-line block">Ready-to-use COT files</span>
                     <span className="hero-line hero-accent-text block">
-                      for every Quarter
+                      organized by quarter
                     </span>
                     <span className="hero-line hero-muted-line block text-4xl md:text-5xl">
-                      and Grade level
+                      then refined by grade level
                     </span>
                   </h1>
 
@@ -609,7 +609,7 @@ export default function Home() {
                       Open Folder Library
                     </a>
                     <a
-                      href="#marketplace"
+                      href="/shop"
                       className="rounded-[18px] border border-stone-200 bg-white px-6 py-3 font-bold text-slate-900 transition hover:bg-stone-50"
                     >
                       View Collection
