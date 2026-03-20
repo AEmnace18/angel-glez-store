@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import toast from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
 
@@ -102,6 +102,25 @@ export default function Home() {
   const [loadingProducts, setLoadingProducts] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<number | null>(null)
+  const gradeFoldersRef = useRef<HTMLElement | null>(null)
+  const productsRef = useRef<HTMLElement | null>(null)
+
+  const scrollToSection = (ref: React.RefObject<HTMLElement | null>) => {
+    window.setTimeout(() => {
+      ref.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, 120)
+  }
+
+  const openQuarterFolder = (quarterLabel: string) => {
+    setSelectedQuarter(quarterLabel)
+    setSelectedGrade(null)
+    scrollToSection(gradeFoldersRef)
+  }
+
+  const openGradeFolder = (gradeLabel: string) => {
+    setSelectedGrade(gradeLabel)
+    scrollToSection(productsRef)
+  }
 
   useEffect(() => {
     const savedPurchases = localStorage.getItem(PURCHASES_KEY)
@@ -424,20 +443,19 @@ export default function Home() {
                   </div>
 
                   <h1 className="max-w-4xl text-5xl font-black leading-[0.98] tracking-tight text-slate-900 md:text-7xl">
-                    Premium COT files
+                    Ready-to-use COT files
                     <br />
                     <span className="bg-gradient-to-r from-violet-600 via-fuchsia-500 to-sky-500 bg-clip-text text-transparent">
                       organized by quarter
                     </span>
                     <br />
                     <span className="text-4xl text-slate-500 md:text-5xl">
-                      then sorted by grade level
+                      then refined by grade level
                     </span>
                   </h1>
 
                   <p className="mt-6 max-w-2xl text-base leading-8 text-slate-600 md:text-lg">
-                    Keep the folder flow simple. Open a quarter folder first, reveal Kinder to Grade 6 folders next,
-                    then browse the products inside that grade.
+                    Built for busy teachers who need clean, classroom-ready files they can open, edit, and use right away. Open a quarter folder first, jump straight to the grade folders next, then open any grade folder to see the files inside.
                   </p>
 
                   <div className="mt-8 flex flex-wrap gap-4">
@@ -615,10 +633,7 @@ export default function Home() {
               return (
                 <button
                   key={quarter.code}
-                  onClick={() => {
-                    setSelectedQuarter(quarter.label)
-                    setSelectedGrade(null)
-                  }}
+                  onClick={() => openQuarterFolder(quarter.label)}
                   className="group text-left"
                 >
                   <div className={`relative rounded-[34px] border p-5 transition-all duration-500 ${
@@ -682,7 +697,7 @@ export default function Home() {
         </section>
 
         {selectedQuarter && (
-          <section className="mx-auto max-w-7xl px-4 pb-12 md:px-6">
+          <section ref={gradeFoldersRef} className="mx-auto max-w-7xl scroll-mt-40 px-4 pb-12 md:px-6">
             <div className="rounded-[32px] border border-white bg-white/90 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur-xl">
               <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                 <div>
@@ -721,7 +736,7 @@ export default function Home() {
                   return (
                     <button
                       key={grade}
-                      onClick={() => setSelectedGrade(grade)}
+                      onClick={() => openGradeFolder(grade)}
                       className="group text-left"
                     >
                       <div className={`relative rounded-[28px] border p-4 transition-all duration-300 ${
@@ -766,7 +781,7 @@ export default function Home() {
           </section>
         )}
 
-        <section id="marketplace" className="mx-auto max-w-7xl px-4 pb-16 md:px-6">
+        <section id="marketplace" ref={productsRef} className="mx-auto max-w-7xl scroll-mt-40 px-4 pb-16 md:px-6">
           <div className="rounded-[32px] border border-white bg-white/90 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
             <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
@@ -805,6 +820,7 @@ export default function Home() {
             ) : (
               <>
                 <div className="mb-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+                  <p className="mb-2 text-sm font-bold uppercase tracking-[0.18em] text-violet-500">Files inside the folder</p>
                   <h3 className="text-2xl font-black text-slate-900">
                     {selectedQuarter ? selectedQuarter : "All Quarters"}{" "}
                     <span className="text-slate-300">/</span>{" "}
