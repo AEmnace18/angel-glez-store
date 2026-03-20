@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import toast from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
 
@@ -352,262 +352,379 @@ export default function AdminPage() {
     showSuccess("Product deleted")
   }
 
+  const adminStats = useMemo(() => {
+    const totalProducts = products.length
+    const totalSales = products.reduce((sum, product) => sum + (product.sold || 0), 0)
+    const totalLikes = products.reduce((sum, product) => sum + (product.likes || 0), 0)
+    const estimatedValue = products.reduce((sum, product) => sum + Number(product.price || 0), 0)
+
+    return {
+      totalProducts,
+      totalSales,
+      totalLikes,
+      estimatedValue,
+    }
+  }, [products])
+
   if (!checkedAuth) return null
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-8 text-slate-900">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.10),transparent_28%),radial-gradient(circle_at_top_right,rgba(236,72,153,0.10),transparent_24%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_52%,#f8fafc_100%)] px-4 py-8 text-slate-900 md:px-6">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex flex-col gap-4 rounded-[32px] bg-white px-6 py-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-600">
-              Angel Glez Admin
-            </p>
-            <h1 className="mt-2 text-4xl font-black tracking-tight">
-              {editingProductId ? "Edit Product" : "Upload New Product"}
-            </h1>
-            <p className="mt-2 text-slate-500">
-              {editingProductId
-                ? "Update your product details, file, or thumbnail."
-                : "Add your COT files, thumbnails, grade, quarter, and selling price."}
-            </p>
+        <section className="relative overflow-hidden rounded-[36px] border border-white/70 bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-900 px-6 py-7 text-white shadow-[0_28px_90px_rgba(15,23,42,0.18)] md:px-8 md:py-8">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.16),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(216,180,254,0.16),transparent_30%)]" />
+          <div className="absolute -left-16 top-0 h-44 w-44 rounded-full bg-fuchsia-400/20 blur-3xl" />
+          <div className="absolute right-0 top-0 h-52 w-52 rounded-full bg-cyan-400/15 blur-3xl" />
+
+          <div className="relative flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-sm font-bold uppercase tracking-[0.35em] text-violet-200">
+                Angel Glez Admin Studio
+              </p>
+
+              <h1 className="mt-3 text-4xl font-black tracking-tight text-white md:text-5xl">
+                {editingProductId ? "Edit Product" : "Upload New Product"}
+              </h1>
+
+              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-200 md:text-lg">
+                {editingProductId
+                  ? "Refine your product details, swap files, and update the store preview before saving changes."
+                  : "Manage your teaching materials, upload polished thumbnails, and prepare premium product cards for your store."}
+              </p>
+            </div>
+
+            <div className="relative flex flex-wrap gap-3">
+              <a
+                href="/admin/payments"
+                className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 font-bold text-white backdrop-blur-xl transition hover:bg-white/15"
+              >
+                Payment Tracker
+              </a>
+
+              <button
+                onClick={handleLogout}
+                className="rounded-2xl bg-white px-5 py-3 font-bold text-slate-900 transition hover:bg-slate-100"
+              >
+                Logout
+              </button>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <a
-              href="/admin/payments"
-              className="rounded-2xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-700 transition hover:bg-slate-50"
-            >
-              Payment Tracker
-            </a>
+          <div className="relative mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-[26px] border border-white/12 bg-white/10 p-4 backdrop-blur-xl">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">
+                Total Products
+              </p>
+              <p className="mt-3 text-3xl font-black text-white">{adminStats.totalProducts}</p>
+              <p className="mt-1 text-sm text-slate-300">Published in your store</p>
+            </div>
 
-            <button
-              onClick={handleLogout}
-              className="rounded-2xl bg-slate-900 px-5 py-3 font-bold text-white transition hover:bg-slate-800"
-            >
-              Logout
-            </button>
+            <div className="rounded-[26px] border border-white/12 bg-white/10 p-4 backdrop-blur-xl">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">
+                Total Sales
+              </p>
+              <p className="mt-3 text-3xl font-black text-white">{adminStats.totalSales}</p>
+              <p className="mt-1 text-sm text-slate-300">Combined sold count</p>
+            </div>
+
+            <div className="rounded-[26px] border border-white/12 bg-white/10 p-4 backdrop-blur-xl">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">
+                Total Likes
+              </p>
+              <p className="mt-3 text-3xl font-black text-white">{adminStats.totalLikes}</p>
+              <p className="mt-1 text-sm text-slate-300">Engagement from visitors</p>
+            </div>
+
+            <div className="rounded-[26px] border border-white/12 bg-white/10 p-4 backdrop-blur-xl">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">
+                Catalog Value
+              </p>
+              <p className="mt-3 text-3xl font-black text-white">₱{adminStats.estimatedValue}</p>
+              <p className="mt-1 text-sm text-slate-300">Sum of product prices</p>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <section className="rounded-[32px] bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-8">
-            <div className="mb-6 flex items-start justify-between gap-3">
+        <div className="mt-8 grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
+          <section className="rounded-[34px] border border-white/70 bg-white/85 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.07)] backdrop-blur-xl md:p-8">
+            <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-extrabold">Product Details</h2>
-                <p className="mt-1 text-slate-500">
+                <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-600">
+                  Product setup
+                </p>
+                <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
+                  Product Details
+                </h2>
+                <p className="mt-2 max-w-2xl text-slate-500">
                   {editingProductId
-                    ? "You are editing an existing product."
-                    : "Fill in the product information before uploading."}
+                    ? "You are editing an existing product. Update the details below, then save when everything looks correct."
+                    : "Fill in the product information, upload the file and thumbnail, then publish it to your storefront."}
                 </p>
               </div>
 
-              {editingProductId && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
-                >
-                  Cancel Edit
-                </button>
-              )}
+              <div className="flex flex-wrap gap-2">
+                {editingProductId && (
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Cancel Edit
+                  </button>
+                )}
+
+                <div className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700">
+                  {loading ? "Processing..." : "Ready to save"}
+                </div>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="mb-2 block text-sm font-bold text-slate-700">
-                  Product Title
-                </label>
-                <input
-                  placeholder="Example: Grade 5 Quarter 2 COT in Math"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-bold text-slate-700">
-                  Description
-                </label>
-                <textarea
-                  placeholder="Write a short but clear description for this product..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
-                  className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
-                />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-bold text-slate-700">
-                    Price
-                  </label>
-                  <input
-                    placeholder="149"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
-                  />
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-5">
+                <div className="mb-4">
+                  <h3 className="text-lg font-black text-slate-900">Basic Information</h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Add the visible details that shoppers will see on your product card.
+                  </p>
                 </div>
 
-                <div>
+                <div className="space-y-5">
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-slate-700">
+                      Product Title
+                    </label>
+                    <input
+                      placeholder="Example: Grade 5 Quarter 2 COT in Math"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-slate-700">
+                      Description
+                    </label>
+                    <textarea
+                      placeholder="Write a short but clear description for this product..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      rows={4}
+                      className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-5">
+                <div className="mb-4">
+                  <h3 className="text-lg font-black text-slate-900">Pricing and Category</h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Set the product price, quarter, and grade placement.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-slate-700">
+                      Price
+                    </label>
+                    <input
+                      placeholder="149"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-slate-700">
+                      Quarter
+                    </label>
+                    <select
+                      value={quarter}
+                      onChange={(e) => setQuarter(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
+                    >
+                      <option value="">Select Quarter</option>
+                      <option value="Q1">Q1</option>
+                      <option value="Q2">Q2</option>
+                      <option value="Q3">Q3</option>
+                      <option value="Q4">Q4</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-4">
                   <label className="mb-2 block text-sm font-bold text-slate-700">
-                    Quarter
+                    Grade Level
                   </label>
                   <select
-                    value={quarter}
-                    onChange={(e) => setQuarter(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
+                    value={grade}
+                    onChange={(e) => setGrade(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
                   >
-                    <option value="">Select Quarter</option>
-                    <option value="Q1">Q1</option>
-                    <option value="Q2">Q2</option>
-                    <option value="Q3">Q3</option>
-                    <option value="Q4">Q4</option>
+                    <option value="">Select Grade</option>
+                    <option value="Kinder">Kinder</option>
+                    <option value="Grade 1">Grade 1</option>
+                    <option value="Grade 2">Grade 2</option>
+                    <option value="Grade 3">Grade 3</option>
+                    <option value="Grade 4">Grade 4</option>
+                    <option value="Grade 5">Grade 5</option>
+                    <option value="Grade 6">Grade 6</option>
                   </select>
                 </div>
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-bold text-slate-700">
-                  Grade Level
-                </label>
-                <select
-                  value={grade}
-                  onChange={(e) => setGrade(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
-                >
-                  <option value="">Select Grade</option>
-                  <option value="Kinder">Kinder</option>
-                  <option value="Grade 1">Grade 1</option>
-                  <option value="Grade 2">Grade 2</option>
-                  <option value="Grade 3">Grade 3</option>
-                  <option value="Grade 4">Grade 4</option>
-                  <option value="Grade 5">Grade 5</option>
-                  <option value="Grade 6">Grade 6</option>
-                </select>
-              </div>
+              <div className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-5">
+                <div className="mb-4">
+                  <h3 className="text-lg font-black text-slate-900">Files and Thumbnail</h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Upload the teaching file and the product thumbnail that will appear in the marketplace.
+                  </p>
+                </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-bold text-slate-700">
-                  {editingProductId ? "Replace Product File (Optional)" : "Upload Product File"}
-                </label>
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".doc,.docx,.ppt,.pptx,.zip,.rar"
-                  className="hidden"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                />
-
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex w-full items-center justify-between rounded-[24px] border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-left transition hover:border-violet-400 hover:bg-violet-50"
-                >
+                <div className="space-y-5">
                   <div>
-                    <p className="font-bold text-slate-800">
-                      {file
-                        ? file.name
-                        : currentFileName || "Choose Word, PowerPoint, ZIP, or RAR file"}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {editingProductId
-                        ? "Leave this unchanged if you want to keep the current file."
-                        : "Large files now upload to Cloudflare R2."}
-                    </p>
+                    <label className="mb-2 block text-sm font-bold text-slate-700">
+                      {editingProductId ? "Replace Product File (Optional)" : "Upload Product File"}
+                    </label>
+
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".doc,.docx,.ppt,.pptx,.zip,.rar"
+                      className="hidden"
+                      onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex w-full items-center justify-between gap-4 rounded-[26px] border border-dashed border-slate-300 bg-white px-5 py-5 text-left transition hover:border-violet-400 hover:bg-violet-50"
+                    >
+                      <div>
+                        <p className="font-bold text-slate-800">
+                          {file
+                            ? file.name
+                            : currentFileName || "Choose Word, PowerPoint, ZIP, or RAR file"}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {editingProductId
+                            ? "Leave this unchanged if you want to keep the current file."
+                            : "Large files upload to Cloudflare R2 for better delivery."}
+                        </p>
+                      </div>
+
+                      <span className="shrink-0 rounded-2xl bg-violet-600 px-4 py-2 text-sm font-bold text-white">
+                        Choose File
+                      </span>
+                    </button>
                   </div>
 
-                  <span className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white">
-                    Choose File
-                  </span>
-                </button>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-bold text-slate-700">
-                  {editingProductId ? "Replace Thumbnail Image (Optional)" : "Upload Thumbnail Image"}
-                </label>
-
-                <input
-                  ref={imageInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const selected = e.target.files?.[0] || null
-                    setImage(selected)
-
-                    if (selected) {
-                      const url = URL.createObjectURL(selected)
-                      setImagePreview(url)
-                    } else {
-                      setImagePreview(editingProductId ? imagePreview : null)
-                    }
-                  }}
-                />
-
-                <button
-                  type="button"
-                  onClick={() => imageInputRef.current?.click()}
-                  className="flex w-full items-center justify-between rounded-[24px] border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-left transition hover:border-violet-400 hover:bg-violet-50"
-                >
                   <div>
-                    <p className="font-bold text-slate-800">
-                      {image ? image.name : "Choose thumbnail image"}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {editingProductId
-                        ? "Leave this unchanged if you want to keep the current thumbnail."
-                        : "Thumbnail still uploads to Supabase."}
-                    </p>
-                  </div>
+                    <label className="mb-2 block text-sm font-bold text-slate-700">
+                      {editingProductId ? "Replace Thumbnail Image (Optional)" : "Upload Thumbnail Image"}
+                    </label>
 
-                  <span className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-bold text-white">
-                    Choose Image
-                  </span>
-                </button>
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const selected = e.target.files?.[0] || null
+                        setImage(selected)
+
+                        if (selected) {
+                          const url = URL.createObjectURL(selected)
+                          setImagePreview(url)
+                        } else {
+                          setImagePreview(editingProductId ? imagePreview : null)
+                        }
+                      }}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      className="flex w-full items-center justify-between gap-4 rounded-[26px] border border-dashed border-slate-300 bg-white px-5 py-5 text-left transition hover:border-violet-400 hover:bg-violet-50"
+                    >
+                      <div>
+                        <p className="font-bold text-slate-800">
+                          {image ? image.name : "Choose thumbnail image"}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {editingProductId
+                            ? "Leave this unchanged if you want to keep the current thumbnail."
+                            : "Recommended for your product card cover."}
+                        </p>
+                      </div>
+
+                      <span className="shrink-0 rounded-2xl bg-violet-600 px-4 py-2 text-sm font-bold text-white">
+                        Choose Image
+                      </span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {loading && uploadProgress > 0 && (
-                <div className="overflow-hidden rounded-2xl bg-slate-100">
-                  <div
-                    className="h-3 bg-gradient-to-r from-violet-600 to-fuchsia-500 transition-all"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
+                <div className="rounded-[24px] border border-violet-100 bg-violet-50 p-4">
+                  <div className="mb-2 flex items-center justify-between text-sm font-bold text-violet-700">
+                    <span>{editingProductId ? "Updating product" : "Uploading product"}</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+
+                  <div className="overflow-hidden rounded-full bg-white">
+                    <div
+                      className="h-3 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-500 transition-all"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-500 py-4 text-lg font-extrabold text-white shadow-lg shadow-violet-200 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {loading
-                  ? editingProductId
-                    ? "Updating..."
-                    : "Uploading..."
-                  : editingProductId
-                    ? "Update Product"
-                    : "Upload Product"}
-              </button>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-500 py-4 text-lg font-extrabold text-white shadow-lg shadow-violet-200 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {loading
+                    ? editingProductId
+                      ? "Updating..."
+                      : "Uploading..."
+                    : editingProductId
+                      ? "Update Product"
+                      : "Publish Product"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="rounded-2xl border border-slate-300 bg-white px-6 py-4 font-bold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Reset Form
+                </button>
+              </div>
             </form>
           </section>
 
-          <aside className="rounded-[32px] bg-slate-900 p-6 text-white shadow-[0_20px_60px_rgba(15,23,42,0.14)] md:p-8">
+          <aside className="h-fit rounded-[34px] border border-slate-800/50 bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-950 p-6 text-white shadow-[0_24px_80px_rgba(15,23,42,0.16)] md:sticky md:top-6 md:p-8">
             <div className="mb-6">
               <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-300">
                 Live Preview
               </p>
-              <h2 className="mt-2 text-2xl font-extrabold">Product Card Preview</h2>
+              <h2 className="mt-2 text-3xl font-black tracking-tight text-white">
+                Product Card Preview
+              </h2>
               <p className="mt-2 text-slate-300">
-                This is how your product setup looks before saving.
+                Review how your product card will look before saving it to the storefront.
               </p>
             </div>
 
-            <div className="overflow-hidden rounded-[28px] bg-white text-slate-900 shadow-2xl">
+            <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white text-slate-900 shadow-2xl">
               <div className="aspect-[4/3] w-full bg-slate-200">
                 {imagePreview ? (
                   <img
@@ -616,7 +733,7 @@ export default function AdminPage() {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-center">
+                  <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 px-6 text-center">
                     <div>
                       <p className="text-lg font-bold text-slate-500">No thumbnail yet</p>
                       <p className="mt-1 text-sm text-slate-400">
@@ -645,11 +762,11 @@ export default function AdminPage() {
                   {description || "Your product description will appear here."}
                 </p>
 
-                <p className="mt-3 line-clamp-1 text-sm text-slate-500">
+                <p className="mt-3 line-clamp-1 rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-500">
                   {file ? file.name : currentFileName || "No product file selected yet"}
                 </p>
 
-                <div className="mt-5 flex items-end justify-between">
+                <div className="mt-5 flex items-end justify-between gap-4">
                   <div>
                     <p className="text-sm text-slate-500">Price</p>
                     <p className="text-3xl font-black">{price ? `₱${price}` : "₱0"}</p>
@@ -665,33 +782,47 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
                   File Status
                 </p>
-                <p className="mt-2 font-bold text-white">
+                <p className="mt-2 text-lg font-black text-white">
                   {file || currentFileName ? "Ready" : "Missing"}
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+              <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
                   Image Status
                 </p>
-                <p className="mt-2 font-bold text-white">
+                <p className="mt-2 text-lg font-black text-white">
                   {imagePreview ? "Ready" : "Missing"}
                 </p>
               </div>
             </div>
+
+            <div className="mt-5 rounded-[24px] border border-white/10 bg-white/5 p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                Publishing Tip
+              </p>
+              <p className="mt-2 text-sm leading-7 text-slate-300">
+                Use a clear title, a readable thumbnail, and the exact quarter and grade so shoppers can find the right file faster.
+              </p>
+            </div>
           </aside>
         </div>
 
-        <section className="mt-8 rounded-[32px] bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] md:p-8">
+        <section className="mt-8 rounded-[34px] border border-white/70 bg-white/85 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.07)] backdrop-blur-xl md:p-8">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-2xl font-extrabold">Uploaded Products</h2>
-              <p className="mt-1 text-slate-500">
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-600">
+                Catalog Manager
+              </p>
+              <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
+                Uploaded Products
+              </h2>
+              <p className="mt-2 text-slate-500">
                 Manage the products currently saved in your store.
               </p>
             </div>
@@ -702,26 +833,27 @@ export default function AdminPage() {
           </div>
 
           {products.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
+            <div className="rounded-[28px] border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
               No uploaded products yet.
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {products.map((product) => (
                 <div
                   key={product.id}
-                  className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                  className="group overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1.5 hover:border-violet-200 hover:shadow-[0_20px_40px_rgba(139,92,246,0.14)]"
                 >
-                  <div className="h-36 bg-slate-100">
+                  <div className="relative h-44 bg-slate-100">
                     <img
                       src={product.imageUrl}
                       alt={product.title}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                     />
+                    <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-900/20 to-transparent" />
                   </div>
 
-                  <div className="p-3">
-                    <div className="mb-2 flex flex-wrap gap-2">
+                  <div className="p-4">
+                    <div className="mb-3 flex flex-wrap gap-2">
                       <span className="rounded-full bg-violet-100 px-2.5 py-1 text-[10px] font-bold text-violet-700">
                         {product.grade}
                       </span>
@@ -730,34 +862,37 @@ export default function AdminPage() {
                       </span>
                     </div>
 
-                    <h3 className="line-clamp-2 text-sm font-extrabold text-slate-900">
+                    <h3 className="line-clamp-2 text-base font-extrabold text-slate-900">
                       {product.title}
                     </h3>
 
-                    <p className="mt-1 line-clamp-2 text-xs text-slate-500">
+                    <p className="mt-2 line-clamp-2 text-sm text-slate-500">
                       {product.description}
                     </p>
 
-                    <p className="mt-2 line-clamp-1 text-[11px] text-slate-400">
+                    <p className="mt-3 line-clamp-1 rounded-full bg-slate-100 px-3 py-2 text-[11px] text-slate-500">
                       {product.fileName}
                     </p>
 
-                    <div className="mt-3 flex items-center justify-between gap-2">
-                      <p className="text-base font-black text-slate-900">
-                        ₱{product.price}
-                      </p>
+                    <div className="mt-4 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xl font-black text-slate-900">₱{product.price}</p>
+                        <p className="text-xs font-semibold text-slate-400">
+                          {product.sold} sold • {product.likes} likes
+                        </p>
+                      </div>
 
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleEditProduct(product)}
-                          className="rounded-xl bg-slate-900 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-slate-800"
+                          className="rounded-xl bg-slate-900 px-3 py-2 text-[11px] font-bold text-white transition hover:bg-slate-800"
                         >
                           Edit
                         </button>
 
                         <button
                           onClick={() => deleteProduct(product.id)}
-                          className="rounded-xl bg-red-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-red-700"
+                          className="rounded-xl bg-red-600 px-3 py-2 text-[11px] font-bold text-white transition hover:bg-red-700"
                         >
                           Delete
                         </button>
@@ -772,4 +907,4 @@ export default function AdminPage() {
       </div>
     </main>
   )
-}
+}  
