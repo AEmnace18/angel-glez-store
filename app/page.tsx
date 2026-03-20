@@ -539,15 +539,15 @@ export default function Home() {
         <section id="quarters" className="mx-auto max-w-7xl px-4 py-16 md:px-6">
           <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-300">Organized library</p>
-              <h2 className="mt-2 text-4xl font-black tracking-tight text-white">Browse by Quarter</h2>
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-300">Folder view</p>
+              <h2 className="mt-2 text-4xl font-black tracking-tight text-white">Open a quarter folder</h2>
             </div>
             <p className="max-w-xl text-sm leading-7 text-white/55">
-              Start from a quarter folder, then narrow the collection by grade level and search.
+              Hover a folder to crack it open, then click the quarter you want before filtering by grade.
             </p>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {quarters.map((quarter) => {
               const previewItems = getQuarterPreviewProducts(products, quarter.code)
               const quarterCount = getQuarterCount(quarter.code)
@@ -560,47 +560,78 @@ export default function Home() {
                     setSelectedQuarter(quarter.code)
                     setSelectedGrade(null)
                   }}
-                  className={`group overflow-hidden rounded-[30px] border p-5 text-left transition duration-300 ${
-                    isActive
-                      ? "border-violet-300/40 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/10 shadow-[0_20px_50px_rgba(124,58,237,0.18)]"
-                      : "border-white/10 bg-white/[0.05] hover:-translate-y-1 hover:bg-white/[0.07]"
-                  }`}
+                  className="group relative text-left"
                 >
-                  <div className="mb-5 flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-black uppercase tracking-[0.2em] text-violet-200">{quarter.code}</p>
-                      <h3 className="mt-2 text-2xl font-black text-white">{quarter.label}</h3>
-                    </div>
-                    {isActive && (
-                      <span className="rounded-full bg-violet-500/20 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-violet-100">
-                        Active
-                      </span>
-                    )}
-                  </div>
+                  <div className={`absolute inset-x-5 bottom-0 h-24 rounded-[28px] blur-2xl transition duration-500 ${
+                    isActive ? "bg-violet-500/30" : "bg-cyan-400/10 group-hover:bg-violet-500/20"
+                  }`} />
 
-                  <div className="grid grid-cols-2 gap-3">
-                    {previewItems.length > 0 ? (
-                      previewItems.map((item) => (
-                        <div key={item.id} className="overflow-hidden rounded-[22px] border border-white/10 bg-white/5">
-                          {item.imageUrl ? (
-                            <img src={item.imageUrl} alt={item.title} className="h-28 w-full object-cover" />
-                          ) : (
-                            <div className="flex h-28 items-center justify-center bg-white/5 text-xs text-white/40">Preview</div>
-                          )}
+                  <div className={`relative rounded-[34px] border p-4 transition duration-500 ${
+                    isActive
+                      ? "border-violet-300/40 bg-gradient-to-b from-violet-500/18 via-[#101530] to-[#0a1022] shadow-[0_24px_70px_rgba(76,29,149,0.28)]"
+                      : "border-white/10 bg-gradient-to-b from-[#10182f] to-[#0a1022] shadow-[0_20px_50px_rgba(0,0,0,0.28)] hover:-translate-y-1"
+                  }`}>
+                    <div className="relative mx-auto max-w-[280px] pt-6">
+                      <div className={`absolute left-4 top-0 h-8 w-24 rounded-t-[16px] border border-b-0 transition ${
+                        isActive ? "border-violet-300/40 bg-violet-400/20" : "border-white/10 bg-white/[0.08]"
+                      }`} />
+
+                      <div className={`relative overflow-hidden rounded-[28px] border transition ${
+                        isActive ? "border-violet-300/40" : "border-white/10"
+                      }`}>
+                        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),transparent_28%,rgba(0,0,0,0.16))]" />
+                        <div className={`absolute inset-x-0 top-0 h-24 origin-top rounded-t-[28px] border-b transition duration-500 ${
+                          isActive
+                            ? "translate-y-[-22%] rotate-x-[-18deg] border-violet-300/30 bg-gradient-to-b from-[#36406f] to-[#20284d]"
+                            : "border-white/10 bg-gradient-to-b from-[#323a64] to-[#1d2445] group-hover:translate-y-[-22%] group-hover:rotate-x-[-18deg]"
+                        }`} />
+
+                        <div className="relative min-h-[260px] bg-gradient-to-b from-[#111933] via-[#0f1730] to-[#0b1226] px-5 pb-5 pt-8">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs font-black uppercase tracking-[0.22em] text-violet-200/90">{quarter.code}</p>
+                              <h3 className="mt-2 text-[2rem] font-black leading-none text-white">{quarter.label}</h3>
+                            </div>
+                            <span className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${
+                              isActive ? "bg-violet-400/20 text-violet-100" : "bg-white/8 text-white/60"
+                            }`}>
+                              {isActive ? "Open" : "Folder"}
+                            </span>
+                          </div>
+
+                          <div className={`mt-6 transition duration-500 ${
+                            isActive ? "translate-y-0 opacity-100" : "group-hover:-translate-y-2"
+                          }`}>
+                            {previewItems.length > 0 ? (
+                              <div className="grid grid-cols-2 gap-3">
+                                {previewItems.map((item) => (
+                                  <div key={item.id} className="overflow-hidden rounded-[20px] border border-white/10 bg-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                                    {item.imageUrl ? (
+                                      <img src={item.imageUrl} alt={item.title} className="h-28 w-full object-cover transition duration-500 group-hover:scale-105" />
+                                    ) : (
+                                      <div className="flex h-28 items-center justify-center text-xs text-white/40">Preview</div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="flex h-28 items-center justify-center rounded-[20px] border border-dashed border-white/10 bg-white/[0.03] text-sm text-white/40">
+                                Folder is empty for now
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="mt-6 flex items-center justify-between">
+                            <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-white/75">
+                              {quarterCount} {quarterCount === 1 ? "product" : "products"}
+                            </span>
+                            <span className="text-sm font-semibold text-white/55 transition group-hover:text-white/80">
+                              {isActive ? "Opened" : "Hover to open"}
+                            </span>
+                          </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="col-span-2 flex h-28 items-center justify-center rounded-[22px] border border-dashed border-white/10 bg-white/[0.03] text-sm text-white/40">
-                        No preview yet
                       </div>
-                    )}
-                  </div>
-
-                  <div className="mt-5 flex items-center justify-between">
-                    <span className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-white/75">
-                      {quarterCount} {quarterCount === 1 ? "product" : "products"}
-                    </span>
-                    <span className="text-sm font-semibold text-white/55">Open folder →</span>
+                    </div>
                   </div>
                 </button>
               )
@@ -997,7 +1028,7 @@ export default function Home() {
             transform: translateY(0) scale(1);
           }
         }
-          
+
         html {
           scroll-behavior: smooth;
         }
