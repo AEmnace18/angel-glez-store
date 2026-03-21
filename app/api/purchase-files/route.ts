@@ -12,11 +12,6 @@ const r2 = new S3Client({
   },
 })
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
 function bufferFromStream(stream: any): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = []
@@ -40,6 +35,18 @@ function fileType(name: string) {
 
 export async function GET(req: Request) {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return NextResponse.json(
+        { error: "Supabase environment variables are missing" },
+        { status: 500 }
+      )
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
     const { searchParams } = new URL(req.url)
     const purchaseId = searchParams.get("purchaseId") || ""
     const buyerEmail = searchParams.get("buyerEmail") || ""

@@ -1,905 +1,423 @@
 "use client"
 
+
 import { useEffect, useMemo, useRef, useState } from "react"
 import toast from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
 
-const ADMIN_SESSION_KEY = "angel-glez-admin-auth"
-const MAX_THUMBNAIL_SIZE = 10 * 1024 * 1024
-
-type ProductItem = {
-  id: number
+type Product = {
+  id: string
   title: string
-  description: string
   price: number
   quarter: string
   grade: string
-  fileName: string
-  fileUrl: string
-  imageUrl: string
-  likes: number
-  sold: number
+  thumbnail_url: string | null
+  file_name: string | null
+  file_url: string | null
 }
 
+type UploadingState = {
+  thumbnail?: boolean
+  file?: boolean
+}
+
+const gradeOptions = ["Kinder", "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6"]
+const quarterOptions = ["Q1", "Q2", "Q3", "Q4"]
+
 export default function AdminPage() {
-  const [checkedAuth, setCheckedAuth] = useState(false)
-  const [products, setProducts] = useState<ProductItem[]>([])
-  const [editingProductId, setEditingProductId] = useState<number | null>(null)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState<UploadingState>({})
+  const [isAuthed, setIsAuthed] = useState(false)
 
   const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
   const [price, setPrice] = useState("")
-  const [grade, setGrade] = useState("")
-  const [quarter, setQuarter] = useState("")
-  const [file, setFile] = useState<File | null>(null)
-  const [image, setImage] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [currentFileName, setCurrentFileName] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
+  const [grade, setGrade] = useState("Grade 1")
+  const [quarter, setQuarter] = useState("Q1")
+  const [thumbnailUrl, setThumbnailUrl] = useState("")
+  const [fileName, setFileName] = useState("")
+  const [fileUrl, setFileUrl] = useState("")
 
+  const thumbnailInputRef = useRef<HTMLInputElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
-  const imageInputRef = useRef<HTMLInputElement | null>(null)
 
-  const showError = (message: string) => {
-    toast.error(message, {
-      style: {
-        borderRadius: "14px",
-        background: "#0f172a",
-        color: "#fff",
-      },
-    })
-  }
+  useEffect(() => {
+    const adminAuth = localStorage.getItem("angel-admin-auth")
+    if (adminAuth === "true") {
+      setIsAuthed(true)
+      loadProducts()
+    } else {
+      setLoading(false)
+      window.location.href = "/admin-login"
+    }
+  }, [])
 
-  const showSuccess = (message: string) => {
-    toast.success(message, {
-      style: {
-        borderRadius: "14px",
-        background: "#0f172a",
-        color: "#fff",
-      },
-    })
-  }
+  async function loadProducts() {
+    setLoading(true)
 
-  const isAllowedFile = (selectedFile: File) => {
-    const allowedExtensions = [".doc", ".docx", ".ppt", ".pptx", ".zip", ".rar"]
-    const lowerName = selectedFile.name.toLowerCase()
-    return allowedExtensions.some((ext) => lowerName.endsWith(ext))
-  }
-
-  const mapSupabaseProducts = (rows: any[]): ProductItem[] => {
-    return rows.map((product) => ({
-      id: Number(product.id),
-      title: product.title || "",
-      description: product.description || "",
-      price: Number(product.price || 0),
-      quarter: product.quarter || "",
-      grade: product.grade || "",
-      fileName: product.file_name || "",
-      fileUrl: product.file_url || "",
-      imageUrl: product.image_url || "",
-      likes: Number(product.likes || 0),
-      sold: Number(product.sold || 0),
-    }))
-  }
-
-  const loadProducts = async () => {
     const { data, error } = await supabase
       .from("products")
       .select("*")
-      .order("id", { ascending: false })
+      .order("created_at", { ascending: false })
 
     if (error) {
-      console.error("Failed to load products:", error)
-      showError("Failed to load products")
+      toast.error("Failed to load products.")
+      setLoading(false)
       return
     }
 
-    setProducts(mapSupabaseProducts(data || []))
+    setProducts((data || []) as Product[])
+    setLoading(false)
   }
 
-  useEffect(() => {
-    const isAdmin = localStorage.getItem(ADMIN_SESSION_KEY)
-
-    if (isAdmin !== "true") {
-      window.location.href = "/admin-login"
-      return
-    }
-
-    setCheckedAuth(true)
-    void loadProducts()
-  }, [])
-
-  const handleLogout = () => {
-    localStorage.removeItem(ADMIN_SESSION_KEY)
-    window.location.href = "/admin-login"
-  }
-
-  const resetForm = () => {
-    setTitle("")
-    setDescription("")
-    setPrice("")
-    setQuarter("")
-    setGrade("")
-    setFile(null)
-    setImage(null)
-    setImagePreview(null)
-    setCurrentFileName("")
-    setEditingProductId(null)
-    setUploadProgress(0)
-
-    if (fileInputRef.current) fileInputRef.current.value = ""
-    if (imageInputRef.current) imageInputRef.current.value = ""
-  }
-
-  const uploadThumbnailToSupabase = async (selectedFile: File) => {
-    const cleanName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, "_")
-    const filePath = `product-thumbnails/${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2)}-${cleanName}`
-
-    const { error: uploadError } = await supabase.storage
-      .from("product-thumbnails")
-      .upload(filePath, selectedFile, {
-        upsert: false,
-        contentType: selectedFile.type || "image/jpeg",
-      })
-
-    if (uploadError) {
-      throw uploadError
-    }
-
-    const { data } = supabase.storage.from("product-thumbnails").getPublicUrl(filePath)
-
-    return {
-      path: filePath,
-      url: data.publicUrl,
-    }
-  }
-
-  const uploadProductFileToR2 = async (selectedFile: File) => {
-    setUploadProgress(10)
-
-    const res = await fetch("/api/admin/r2-upload-url", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        fileName: selectedFile.name,
-        contentType: selectedFile.type || "application/octet-stream",
-      }),
-    })
-
-    const data = await res.json()
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to get upload URL")
-    }
-
-    setUploadProgress(30)
-
-    const uploadRes = await fetch(data.uploadUrl, {
-      method: "PUT",
-      headers: {
-        "Content-Type": selectedFile.type || "application/octet-stream",
-      },
-      body: selectedFile,
-    })
-
-    if (!uploadRes.ok) {
-      const text = await uploadRes.text()
-      throw new Error(text || "Upload to R2 failed")
-    }
-
-    setUploadProgress(100)
-
-    return {
-      key: data.objectKey as string,
-      url: data.objectKey as string,
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!title || !description || !price || !quarter || !grade) {
-      showError("Please complete all fields")
-      return
-    }
-
-    if (!editingProductId && (!file || !image)) {
-      showError("Please upload both file and image")
-      return
-    }
-
-    if (file && !isAllowedFile(file)) {
-      showError("Only Word, PowerPoint, ZIP, or RAR files are allowed. ZIP works best for the in-site file viewer.")
-      return
-    }
-
-    if (image && image.size > MAX_THUMBNAIL_SIZE) {
-      showError("Thumbnail image must be 10 MB or below")
-      return
-    }
+  async function uploadToBlob(file: File, type: "thumbnail" | "file") {
+    setUploading((prev) => ({ ...prev, [type]: true }))
 
     try {
-      setLoading(true)
-      setUploadProgress(0)
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("type", type)
 
-      if (editingProductId) {
-        const existingProduct = products.find((p) => p.id === editingProductId)
-
-        if (!existingProduct) {
-          showError("Product not found")
-          return
-        }
-
-        let updatedFileUrl = existingProduct.fileUrl
-        let updatedFileName = existingProduct.fileName
-        let updatedImageUrl = existingProduct.imageUrl
-
-        if (file) {
-          const uploadedProductFile = await uploadProductFileToR2(file)
-          updatedFileUrl = uploadedProductFile.key
-          updatedFileName = file.name
-        }
-
-        if (image) {
-          const uploadedThumbnail = await uploadThumbnailToSupabase(image)
-          updatedImageUrl = uploadedThumbnail.url
-        }
-
-        const { error } = await supabase
-          .from("products")
-          .update({
-            title,
-            description,
-            price: Number(price),
-            quarter,
-            grade,
-            file_name: updatedFileName,
-            file_url: updatedFileUrl,
-            image_url: updatedImageUrl,
-          })
-          .eq("id", editingProductId)
-
-        if (error) {
-          console.error("Update failed:", error)
-          showError("Update failed")
-          return
-        }
-
-        await loadProducts()
-        showSuccess("Product updated successfully!")
-        resetForm()
-        return
-      }
-
-      const uploadedThumbnail = await uploadThumbnailToSupabase(image as File)
-      const uploadedProductFile = await uploadProductFileToR2(file as File)
-
-      const { error } = await supabase.from("products").insert({
-        title,
-        description,
-        price: Number(price),
-        quarter,
-        grade,
-        file_name: (file as File).name,
-        file_url: uploadedProductFile.key,
-        image_url: uploadedThumbnail.url,
-        likes: 0,
-        sold: 0,
+      const response = await fetch("/api/blob", {
+        method: "POST",
+        body: formData,
       })
 
-      if (error) {
-        console.error("Insert failed:", error)
-        showError("Upload failed")
-        return
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Upload failed")
       }
 
-      await loadProducts()
-      showSuccess("Product uploaded successfully!")
-      resetForm()
+      if (type === "thumbnail") {
+        setThumbnailUrl(result.url || "")
+      } else {
+        setFileUrl(result.url || "")
+        setFileName(file.name)
+      }
+
+      toast.success(type === "thumbnail" ? "Thumbnail uploaded." : "File uploaded.")
     } catch (error) {
       console.error(error)
-      const message =
-        error instanceof Error
-          ? error.message
-          : editingProductId
-            ? "Update failed"
-            : "Upload failed"
-      showError(message)
+      toast.error(type === "thumbnail" ? "Thumbnail upload failed." : "File upload failed.")
     } finally {
-      setLoading(false)
+      setUploading((prev) => ({ ...prev, [type]: false }))
     }
   }
 
-  const handleEditProduct = (product: ProductItem) => {
-    setEditingProductId(product.id)
-    setTitle(product.title)
-    setDescription(product.description)
-    setPrice(String(product.price))
-    setQuarter(product.quarter)
-    setGrade(product.grade)
-    setImagePreview(product.imageUrl)
-    setCurrentFileName(product.fileName)
-    setFile(null)
-    setImage(null)
-    setUploadProgress(0)
+  async function handleCreateProduct() {
+    if (!title.trim() || !price.trim() || !grade || !quarter || !fileUrl || !fileName) {
+      toast.error("Please complete all required fields.")
+      return
+    }
 
+    const parsedPrice = Number(price)
+
+    if (Number.isNaN(parsedPrice) || parsedPrice <= 0) {
+      toast.error("Enter a valid price.")
+      return
+    }
+
+    setSaving(true)
+
+    const { error } = await supabase.from("products").insert({
+      title: title.trim(),
+      price: parsedPrice,
+      grade,
+      quarter,
+      thumbnail_url: thumbnailUrl || null,
+      file_name: fileName,
+      file_url: fileUrl,
+    })
+
+    setSaving(false)
+
+    if (error) {
+      toast.error("Failed to create product.")
+      return
+    }
+
+    toast.success("Product added.")
+    setTitle("")
+    setPrice("")
+    setGrade("Grade 1")
+    setQuarter("Q1")
+    setThumbnailUrl("")
+    setFileName("")
+    setFileUrl("")
+    if (thumbnailInputRef.current) thumbnailInputRef.current.value = ""
     if (fileInputRef.current) fileInputRef.current.value = ""
-    if (imageInputRef.current) imageInputRef.current.value = ""
-
-    window.scrollTo({ top: 0, behavior: "smooth" })
+    loadProducts()
   }
 
-  const deleteProduct = async (id: number) => {
+  async function handleDeleteProduct(id: string) {
+    const confirmed = window.confirm("Delete this product?")
+    if (!confirmed) return
+
     const { error } = await supabase.from("products").delete().eq("id", id)
 
     if (error) {
-      console.error("Delete failed:", error)
-      showError("Delete failed")
+      toast.error("Failed to delete product.")
       return
     }
 
-    await loadProducts()
-
-    if (editingProductId === id) {
-      resetForm()
-    }
-
-    showSuccess("Product deleted")
+    toast.success("Product deleted.")
+    loadProducts()
   }
 
-  const adminStats = useMemo(() => {
-    const totalProducts = products.length
-    const totalSales = products.reduce((sum, product) => sum + (product.sold || 0), 0)
-    const totalLikes = products.reduce((sum, product) => sum + (product.likes || 0), 0)
-    const estimatedValue = products.reduce((sum, product) => sum + Number(product.price || 0), 0)
-
+  const stats = useMemo(() => {
     return {
-      totalProducts,
-      totalSales,
-      totalLikes,
-      estimatedValue,
+      total: products.length,
+      q1: products.filter((p) => p.quarter === "Q1").length,
+      q2: products.filter((p) => p.quarter === "Q2").length,
+      q3: products.filter((p) => p.quarter === "Q3").length,
+      q4: products.filter((p) => p.quarter === "Q4").length,
     }
   }, [products])
 
-  if (!checkedAuth) return null
+  if (!isAuthed && !loading) return null
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.10),transparent_28%),radial-gradient(circle_at_top_right,rgba(236,72,153,0.10),transparent_24%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_52%,#f8fafc_100%)] px-4 py-8 text-slate-900 md:px-6">
-      <div className="mx-auto max-w-7xl">
-        <section className="relative overflow-hidden rounded-[36px] border border-white/70 bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-900 px-6 py-7 text-white shadow-[0_28px_90px_rgba(15,23,42,0.18)] md:px-8 md:py-8">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.16),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(216,180,254,0.16),transparent_30%)]" />
-          <div className="absolute -left-16 top-0 h-44 w-44 rounded-full bg-fuchsia-400/20 blur-3xl" />
-          <div className="absolute right-0 top-0 h-52 w-52 rounded-full bg-cyan-400/15 blur-3xl" />
-
-          <div className="relative flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-            <div className="max-w-3xl">
-              <p className="text-sm font-bold uppercase tracking-[0.35em] text-violet-200">
-                Angel Glez Admin Studio
-              </p>
-
-              <h1 className="mt-3 text-4xl font-black tracking-tight text-white md:text-5xl">
-                {editingProductId ? "Edit Product" : "Upload New Product"}
-              </h1>
-
-              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-200 md:text-lg">
-                {editingProductId
-                  ? "Refine your product details, swap files, and update the store preview before saving changes."
-                  : "Manage your teaching materials, upload polished thumbnails, and prepare premium product cards for your store."}
-              </p>
+    <main className="min-h-screen bg-[#f6f1e8] px-4 py-8 text-slate-900 md:px-8">
+      <div className="mx-auto max-w-7xl space-y-8">
+        <section className="overflow-hidden rounded-[32px] border border-white/60 bg-white/80 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-3">
+              <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Admin dashboard
+              </span>
+              <div>
+                <h1 className="text-3xl font-black tracking-tight md:text-5xl">Manage your COT products</h1>
+                <p className="mt-3 max-w-2xl text-sm text-slate-600 md:text-base">
+                  Upload new teaching files, organize the library, and keep the store clean and ready for buyers.
+                </p>
+              </div>
             </div>
 
-            <div className="relative flex flex-wrap gap-3">
-              <a
-                href="/admin/payments"
-                className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 font-bold text-white backdrop-blur-xl transition hover:bg-white/15"
-              >
-                Payment Tracker
-              </a>
-
-              <button
-                onClick={handleLogout}
-                className="rounded-2xl bg-white px-5 py-3 font-bold text-slate-900 transition hover:bg-slate-100"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-
-          <div className="relative mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-[26px] border border-white/12 bg-white/10 p-4 backdrop-blur-xl">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">
-                Total Products
-              </p>
-              <p className="mt-3 text-3xl font-black text-white">{adminStats.totalProducts}</p>
-              <p className="mt-1 text-sm text-slate-300">Published in your store</p>
-            </div>
-
-            <div className="rounded-[26px] border border-white/12 bg-white/10 p-4 backdrop-blur-xl">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">
-                Total Sales
-              </p>
-              <p className="mt-3 text-3xl font-black text-white">{adminStats.totalSales}</p>
-              <p className="mt-1 text-sm text-slate-300">Combined sold count</p>
-            </div>
-
-            <div className="rounded-[26px] border border-white/12 bg-white/10 p-4 backdrop-blur-xl">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">
-                Total Likes
-              </p>
-              <p className="mt-3 text-3xl font-black text-white">{adminStats.totalLikes}</p>
-              <p className="mt-1 text-sm text-slate-300">Engagement from visitors</p>
-            </div>
-
-            <div className="rounded-[26px] border border-white/12 bg-white/10 p-4 backdrop-blur-xl">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">
-                Catalog Value
-              </p>
-              <p className="mt-3 text-3xl font-black text-white">₱{adminStats.estimatedValue}</p>
-              <p className="mt-1 text-sm text-slate-300">Sum of product prices</p>
-            </div>
+            <a
+              href="/admin/payments"
+              className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:scale-[1.01]"
+            >
+              Open payments
+            </a>
           </div>
         </section>
 
-        <div className="mt-8 grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
-          <section className="rounded-[34px] border border-white/70 bg-white/85 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.07)] backdrop-blur-xl md:p-8">
-            <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-600">
-                  Product setup
-                </p>
-                <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
-                  Product Details
-                </h2>
-                <p className="mt-2 max-w-2xl text-slate-500">
-                  {editingProductId
-                    ? "You are editing an existing product. Update the details below, then save when everything looks correct."
-                    : "Fill in the product information, upload the file and thumbnail, then publish it to your storefront."}
-                </p>
-              </div>
+        <section className="grid gap-4 md:grid-cols-4">
+          <div className="rounded-[28px] border border-white/60 bg-white/85 p-5 shadow-sm">
+            <div className="text-3xl font-black">{stats.total}</div>
+            <div className="mt-1 text-sm text-slate-500">Total products</div>
+          </div>
+          <div className="rounded-[28px] border border-white/60 bg-white/85 p-5 shadow-sm">
+            <div className="text-3xl font-black">{stats.q1}</div>
+            <div className="mt-1 text-sm text-slate-500">Quarter 1</div>
+          </div>
+          <div className="rounded-[28px] border border-white/60 bg-white/85 p-5 shadow-sm">
+            <div className="text-3xl font-black">{stats.q2 + stats.q3}</div>
+            <div className="mt-1 text-sm text-slate-500">Quarter 2–3</div>
+          </div>
+          <div className="rounded-[28px] border border-white/60 bg-white/85 p-5 shadow-sm">
+            <div className="text-3xl font-black">{stats.q4}</div>
+            <div className="mt-1 text-sm text-slate-500">Quarter 4</div>
+          </div>
+        </section>
 
-              <div className="flex flex-wrap gap-2">
-                {editingProductId && (
-                  <button
-                    type="button"
-                    onClick={resetForm}
-                    className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    Cancel Edit
-                  </button>
-                )}
-
-                <div className="rounded-2xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700">
-                  {loading ? "Processing..." : "Ready to save"}
-                </div>
-              </div>
+        <section className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="rounded-[32px] border border-white/60 bg-white/85 p-6 shadow-[0_12px_40px_rgba(15,23,42,0.06)] md:p-8">
+            <div className="mb-6">
+              <h2 className="text-2xl font-black tracking-tight">Add a new product</h2>
+              <p className="mt-2 text-sm text-slate-500">
+                Upload the teaching file, set the title, price, grade, and quarter.
+              </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-5">
-                <div className="mb-4">
-                  <h3 className="text-lg font-black text-slate-900">Basic Information</h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Add the visible details that shoppers will see on your product card.
-                  </p>
-                </div>
-
-                <div className="space-y-5">
-                  <div>
-                    <label className="mb-2 block text-sm font-bold text-slate-700">
-                      Product Title
-                    </label>
-                    <input
-                      placeholder="Example: Grade 5 Quarter 2 COT in Math"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-bold text-slate-700">
-                      Description
-                    </label>
-                    <textarea
-                      placeholder="Write a short but clear description for this product..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      rows={4}
-                      className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
-                    />
-                  </div>
-                </div>
+            <div className="grid gap-5">
+              <div className="grid gap-2">
+                <label className="text-sm font-semibold">Title</label>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Example: AP 6 Q4 W3 Pagkilos at Pagtugon"
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-slate-400"
+                />
               </div>
 
-              <div className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-5">
-                <div className="mb-4">
-                  <h3 className="text-lg font-black text-slate-900">Pricing and Category</h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Set the product price, quarter, and grade placement.
-                  </p>
+              <div className="grid gap-5 md:grid-cols-3">
+                <div className="grid gap-2">
+                  <label className="text-sm font-semibold">Price</label>
+                  <input
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    placeholder="200"
+                    type="number"
+                    min="0"
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-slate-400"
+                  />
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-bold text-slate-700">
-                      Price
-                    </label>
-                    <input
-                      placeholder="149"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-bold text-slate-700">
-                      Quarter
-                    </label>
-                    <select
-                      value={quarter}
-                      onChange={(e) => setQuarter(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
-                    >
-                      <option value="">Select Quarter</option>
-                      <option value="Q1">Q1</option>
-                      <option value="Q2">Q2</option>
-                      <option value="Q3">Q3</option>
-                      <option value="Q4">Q4</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <label className="mb-2 block text-sm font-bold text-slate-700">
-                    Grade Level
-                  </label>
+                <div className="grid gap-2">
+                  <label className="text-sm font-semibold">Grade</label>
                   <select
                     value={grade}
                     onChange={(e) => setGrade(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 outline-none transition focus:border-violet-500 focus:bg-white"
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-slate-400"
                   >
-                    <option value="">Select Grade</option>
-                    <option value="Kinder">Kinder</option>
-                    <option value="Grade 1">Grade 1</option>
-                    <option value="Grade 2">Grade 2</option>
-                    <option value="Grade 3">Grade 3</option>
-                    <option value="Grade 4">Grade 4</option>
-                    <option value="Grade 5">Grade 5</option>
-                    <option value="Grade 6">Grade 6</option>
+                    {gradeOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid gap-2">
+                  <label className="text-sm font-semibold">Quarter</label>
+                  <select
+                    value={quarter}
+                    onChange={(e) => setQuarter(e.target.value)}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-slate-400"
+                  >
+                    {quarterOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
 
-              <div className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-5">
-                <div className="mb-4">
-                  <h3 className="text-lg font-black text-slate-900">Files and Thumbnail</h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Upload the teaching file and the product thumbnail that will appear in the marketplace.
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <label className="text-sm font-semibold">Thumbnail image</label>
+                  <input
+                    ref={thumbnailInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) uploadToBlob(file, "thumbnail")
+                    }}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
+                  />
+                  <p className="text-xs text-slate-500">
+                    {uploading.thumbnail ? "Uploading thumbnail..." : thumbnailUrl ? "Thumbnail ready." : "Optional"}
                   </p>
                 </div>
 
-                <div className="space-y-5">
-                  <div>
-                    <label className="mb-2 block text-sm font-bold text-slate-700">
-                      {editingProductId ? "Replace Product File (Optional)" : "Upload Product File"}
-                    </label>
-
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".doc,.docx,.ppt,.pptx,.zip,.rar"
-                      className="hidden"
-                      onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex w-full items-center justify-between gap-4 rounded-[26px] border border-dashed border-slate-300 bg-white px-5 py-5 text-left transition hover:border-violet-400 hover:bg-violet-50"
-                    >
-                      <div>
-                        <p className="font-bold text-slate-800">
-                          {file
-                            ? file.name
-                            : currentFileName || "Choose Word, PowerPoint, ZIP, or RAR file"}
-                        </p>
-                        <p className="mt-1 text-sm text-slate-500">
-                          {editingProductId
-                            ? "Leave this unchanged if you want to keep the current file."
-                            : "Large files upload to Cloudflare R2 for better delivery. ZIP files can be opened inside the buyer\'s Purchases page."}
-                        </p>
-                      </div>
-
-                      <span className="shrink-0 rounded-2xl bg-violet-600 px-4 py-2 text-sm font-bold text-white">
-                        Choose File
-                      </span>
-                    </button>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-bold text-slate-700">
-                      {editingProductId ? "Replace Thumbnail Image (Optional)" : "Upload Thumbnail Image"}
-                    </label>
-
-                    <input
-                      ref={imageInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const selected = e.target.files?.[0] || null
-                        setImage(selected)
-
-                        if (selected) {
-                          const url = URL.createObjectURL(selected)
-                          setImagePreview(url)
-                        } else {
-                          setImagePreview(editingProductId ? imagePreview : null)
-                        }
-                      }}
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => imageInputRef.current?.click()}
-                      className="flex w-full items-center justify-between gap-4 rounded-[26px] border border-dashed border-slate-300 bg-white px-5 py-5 text-left transition hover:border-violet-400 hover:bg-violet-50"
-                    >
-                      <div>
-                        <p className="font-bold text-slate-800">
-                          {image ? image.name : "Choose thumbnail image"}
-                        </p>
-                        <p className="mt-1 text-sm text-slate-500">
-                          {editingProductId
-                            ? "Leave this unchanged if you want to keep the current thumbnail."
-                            : "Recommended for your product card cover."}
-                        </p>
-                      </div>
-
-                      <span className="shrink-0 rounded-2xl bg-violet-600 px-4 py-2 text-sm font-bold text-white">
-                        Choose Image
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {loading && uploadProgress > 0 && (
-                <div className="rounded-[24px] border border-violet-100 bg-violet-50 p-4">
-                  <div className="mb-2 flex items-center justify-between text-sm font-bold text-violet-700">
-                    <span>{editingProductId ? "Updating product" : "Uploading product"}</span>
-                    <span>{uploadProgress}%</span>
-                  </div>
-
-                  <div className="overflow-hidden rounded-full bg-white">
-                    <div
-                      className="h-3 rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-500 transition-all"
-                      style={{ width: `${uploadProgress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-500 py-4 text-lg font-extrabold text-white shadow-lg shadow-violet-200 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-70"
-                >
-                  {loading
-                    ? editingProductId
-                      ? "Updating..."
-                      : "Uploading..."
-                    : editingProductId
-                      ? "Update Product"
-                      : "Publish Product"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="rounded-2xl border border-slate-300 bg-white px-6 py-4 font-bold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Reset Form
-                </button>
-              </div>
-            </form>
-          </section>
-
-          <aside className="h-fit rounded-[34px] border border-slate-800/50 bg-gradient-to-br from-slate-950 via-indigo-950 to-violet-950 p-6 text-white shadow-[0_24px_80px_rgba(15,23,42,0.16)] md:sticky md:top-6 md:p-8">
-            <div className="mb-6">
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-300">
-                Live Preview
-              </p>
-              <h2 className="mt-2 text-3xl font-black tracking-tight text-white">
-                Product Card Preview
-              </h2>
-              <p className="mt-2 text-slate-300">
-                Review how your product card will look before saving it to the storefront.
-              </p>
-            </div>
-
-            <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white text-slate-900 shadow-2xl">
-              <div className="aspect-[4/3] w-full bg-slate-200">
-                {imagePreview ? (
-                  <img
-                    src={imagePreview}
-                    alt="Product preview"
-                    className="h-full w-full object-cover"
+                <div className="grid gap-2">
+                  <label className="text-sm font-semibold">Product file</label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) uploadToBlob(file, "file")
+                    }}
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
                   />
-                ) : (
-                  <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 px-6 text-center">
-                    <div>
-                      <p className="text-lg font-bold text-slate-500">No thumbnail yet</p>
-                      <p className="mt-1 text-sm text-slate-400">
-                        Upload an image to preview it here
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="p-5">
-                <div className="mb-3 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-700">
-                    {grade || "Grade Level"}
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-                    {quarter || "Quarter"}
-                  </span>
-                </div>
-
-                <h3 className="line-clamp-2 text-xl font-extrabold">
-                  {title || "Your product title will appear here"}
-                </h3>
-
-                <p className="mt-2 line-clamp-3 text-sm text-slate-500">
-                  {description || "Your product description will appear here."}
-                </p>
-
-                <p className="mt-3 line-clamp-1 rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-500">
-                  {file ? file.name : currentFileName || "No product file selected yet"}
-                </p>
-
-                <div className="mt-5 flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-sm text-slate-500">Price</p>
-                    <p className="text-3xl font-black">{price ? `₱${price}` : "₱0"}</p>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-bold text-white"
-                  >
-                    Preview Only
-                  </button>
+                  <p className="text-xs text-slate-500">
+                    {uploading.file ? "Uploading file..." : fileName ? fileName : "Required"}
+                  </p>
                 </div>
               </div>
-            </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                  File Status
-                </p>
-                <p className="mt-2 text-lg font-black text-white">
-                  {file || currentFileName ? "Ready" : "Missing"}
-                </p>
-              </div>
-
-              <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                  Image Status
-                </p>
-                <p className="mt-2 text-lg font-black text-white">
-                  {imagePreview ? "Ready" : "Missing"}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 rounded-[24px] border border-white/10 bg-white/5 p-4">
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                Publishing Tip
-              </p>
-              <p className="mt-2 text-sm leading-7 text-slate-300">
-                Use a clear title, a readable thumbnail, and the exact quarter and grade so shoppers can find the right file faster.
-              </p>
-            </div>
-          </aside>
-        </div>
-
-        <section className="mt-8 rounded-[34px] border border-white/70 bg-white/85 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.07)] backdrop-blur-xl md:p-8">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-violet-600">
-                Catalog Manager
-              </p>
-              <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
-                Uploaded Products
-              </h2>
-              <p className="mt-2 text-slate-500">
-                Manage the products currently saved in your store.
-              </p>
-            </div>
-
-            <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700">
-              {products.length} product{products.length !== 1 ? "s" : ""}
+              <button
+                onClick={handleCreateProduct}
+                disabled={saving || uploading.file || uploading.thumbnail}
+                className="inline-flex min-h-[52px] items-center justify-center rounded-2xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saving ? "Saving product..." : "Add product"}
+              </button>
             </div>
           </div>
 
-          {products.length === 0 ? (
-            <div className="rounded-[28px] border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
-              No uploaded products yet.
+          <div className="rounded-[32px] border border-white/60 bg-slate-950 p-6 text-white shadow-[0_12px_40px_rgba(15,23,42,0.12)] md:p-8">
+            <div className="mb-6">
+              <h2 className="text-2xl font-black tracking-tight">Quick admin notes</h2>
+              <p className="mt-2 text-sm text-white/65">
+                Keep uploads neat so buyers get a clean premium experience.
+              </p>
+            </div>
+
+            <div className="space-y-4 text-sm text-white/80">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                Use clear file titles so teachers know exactly what they are buying.
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                Prefer polished thumbnails with readable grade and quarter labels.
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                ZIP uploads are supported, so you can package product contents cleanly.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-[32px] border border-white/60 bg-white/85 p-6 shadow-[0_12px_40px_rgba(15,23,42,0.06)] md:p-8">
+          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-2xl font-black tracking-tight">Uploaded products</h2>
+              <p className="mt-2 text-sm text-slate-500">
+                Review everything currently listed in the store.
+              </p>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="rounded-3xl border border-dashed border-slate-200 px-6 py-14 text-center text-sm text-slate-500">
+              Loading products...
+            </div>
+          ) : products.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-slate-200 px-6 py-14 text-center text-sm text-slate-500">
+              No products yet.
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {products.map((product) => (
-                <div
+                <article
                   key={product.id}
-                  className="group overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1.5 hover:border-violet-200 hover:shadow-[0_20px_40px_rgba(139,92,246,0.14)]"
+                  className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm"
                 >
-                  <div className="relative h-44 bg-slate-100">
-                    <img
-                      src={product.imageUrl}
-                      alt={product.title}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-900/20 to-transparent" />
+                  <div className="aspect-[16/10] bg-slate-100">
+                    {product.thumbnail_url ? (
+                      <img
+                        src={product.thumbnail_url}
+                        alt={product.title}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-slate-400">
+                        No thumbnail
+                      </div>
+                    )}
                   </div>
 
-                  <div className="p-4">
-                    <div className="mb-3 flex flex-wrap gap-2">
-                      <span className="rounded-full bg-violet-100 px-2.5 py-1 text-[10px] font-bold text-violet-700">
-                        {product.grade}
+                  <div className="space-y-4 p-5">
+                    <div>
+                      <h3 className="line-clamp-2 text-lg font-black leading-tight">{product.title}</h3>
+                      <p className="mt-2 text-sm text-slate-500">
+                        {product.grade} • {product.quarter}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
+                        ₱{product.price}
                       </span>
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-700">
-                        {product.quarter}
+                      <span className="max-w-[60%] truncate text-xs text-slate-500">
+                        {product.file_name || "No file"}
                       </span>
                     </div>
 
-                    <h3 className="line-clamp-2 text-base font-extrabold text-slate-900">
-                      {product.title}
-                    </h3>
-
-                    <p className="mt-2 line-clamp-2 text-sm text-slate-500">
-                      {product.description}
-                    </p>
-
-                    <p className="mt-3 line-clamp-1 rounded-full bg-slate-100 px-3 py-2 text-[11px] text-slate-500">
-                      {product.fileName}
-                    </p>
-
-                    <div className="mt-4 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xl font-black text-slate-900">₱{product.price}</p>
-                        <p className="text-xs font-semibold text-slate-400">
-                          {product.sold} sold • {product.likes} likes
-                        </p>
-                      </div>
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEditProduct(product)}
-                          className="rounded-xl bg-slate-900 px-3 py-2 text-[11px] font-bold text-white transition hover:bg-slate-800"
-                        >
-                          Edit
-                        </button>
-
-                        <button
-                          onClick={() => deleteProduct(product.id)}
-                          className="rounded-xl bg-red-600 px-3 py-2 text-[11px] font-bold text-white transition hover:bg-red-700"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
+                    <button
+                      onClick={() => handleDeleteProduct(product.id)}
+                      className="inline-flex min-h-[44px] w-full items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
+                    >
+                      Delete product
+                    </button>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           )}
@@ -907,4 +425,4 @@ export default function AdminPage() {
       </div>
     </main>
   )
-}  
+}
