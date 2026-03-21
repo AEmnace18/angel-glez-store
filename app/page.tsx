@@ -234,6 +234,9 @@ export default function Home() {
   const [hoveredStars, setHoveredStars] = useState(0)
   const [selectedStars, setSelectedStars] = useState(0)
   const [reviewText, setReviewText] = useState("")
+  const [finderGrade, setFinderGrade] = useState("All Grades")
+  const [finderQuarter, setFinderQuarter] = useState("All Quarters")
+  const [finderSearch, setFinderSearch] = useState("")
 
   const triggerFolderFeel = (key: string) => {
     setFolderPulse(key)
@@ -372,6 +375,33 @@ export default function Home() {
       return matchQuarter && matchGrade
     })
   }, [products, selectedQuarter, selectedGrade])
+
+  const smartFinderResults = useMemo(() => {
+    const keyword = finderSearch.trim().toLowerCase()
+
+    return products
+      .filter((product) => {
+        const matchesGrade = finderGrade === "All Grades" ? true : product.grade === finderGrade
+        const matchesQuarter =
+          finderQuarter === "All Quarters" ? true : product.quarter === finderQuarter
+        const matchesKeyword =
+          keyword.length === 0
+            ? true
+            : [product.title, product.description, product.fileName, product.grade, product.quarter]
+                .join(" ")
+                .toLowerCase()
+                .includes(keyword)
+
+        return matchesGrade && matchesQuarter && matchesKeyword
+      })
+      .slice(0, 6)
+  }, [products, finderGrade, finderQuarter, finderSearch])
+
+  const openFinderProduct = (product: Product) => {
+    setSelectedQuarter(product.quarter)
+    setSelectedGrade(product.grade)
+    setSelectedProduct(product)
+  }
 
   const currentFeatured =
     featuredProducts.length > 0 ? featuredProducts[featuredIndex % featuredProducts.length] : null
@@ -940,6 +970,174 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 pb-6 md:px-6">
+          <div className="overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(49,46,129,0.95)_55%,rgba(15,23,42,0.98))] p-6 text-white shadow-[0_30px_90px_rgba(15,23,42,0.18)] md:p-8">
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-2xl">
+                <div className="inline-flex rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-violet-200">
+                  Find My COT
+                </div>
+                <h2 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">
+                  Find the right classroom file in seconds
+                </h2>
+                <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300 md:text-base">
+                  Match your lesson faster by filtering the library by grade, quarter, and keyword. Open the exact material you need without digging through folders one by one.
+                </p>
+
+                <div className="mt-6 flex flex-wrap gap-2">
+                  {["Kinder", "Grade 1", "Grade 3", "Grade 6", "Q1", "Q4"].map((chip) => (
+                    <button
+                      key={chip}
+                      onClick={() => {
+                        if (chip.startsWith("Q")) {
+                          setFinderQuarter(chip)
+                        } else {
+                          setFinderGrade(chip)
+                        }
+                      }}
+                      className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold text-white/90 transition hover:bg-white/15"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="w-full max-w-3xl rounded-[28px] border border-white/10 bg-white/10 p-4 backdrop-blur-xl md:p-5">
+                <div className="grid gap-3 md:grid-cols-[1fr_180px_180px_auto]">
+                  <input
+                    value={finderSearch}
+                    onChange={(e) => setFinderSearch(e.target.value)}
+                    placeholder="Search title, file name, or keyword"
+                    className="rounded-2xl border border-white/10 bg-white/90 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-violet-400"
+                  />
+
+                  <select
+                    value={finderGrade}
+                    onChange={(e) => setFinderGrade(e.target.value)}
+                    className="rounded-2xl border border-white/10 bg-white/90 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-violet-400"
+                  >
+                    <option>All Grades</option>
+                    {grades.map((grade) => (
+                      <option key={grade} value={grade}>
+                        {grade}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={finderQuarter}
+                    onChange={(e) => setFinderQuarter(e.target.value)}
+                    className="rounded-2xl border border-white/10 bg-white/90 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-violet-400"
+                  >
+                    <option>All Quarters</option>
+                    {quarters.map((quarter) => (
+                      <option key={quarter.code} value={quarter.label}>
+                        {quarter.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    onClick={() => document.getElementById("find-my-cot-results")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                    className="rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-900 transition hover:scale-[1.02]"
+                  >
+                    Find My COT
+                  </button>
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm text-white/80">
+                    {smartFinderResults.length} {smartFinderResults.length === 1 ? "match" : "matches"} found
+                  </p>
+
+                  <button
+                    onClick={() => {
+                      setFinderSearch("")
+                      setFinderGrade("All Grades")
+                      setFinderQuarter("All Quarters")
+                    }}
+                    className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/15"
+                  >
+                    Reset filters
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div id="find-my-cot-results" className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {smartFinderResults.length > 0 ? (
+                smartFinderResults.map((product) => (
+                  <button
+                    key={product.id}
+                    onClick={() => openFinderProduct(product)}
+                    className="group overflow-hidden rounded-[26px] border border-white/10 bg-white/95 text-left shadow-[0_18px_40px_rgba(15,23,42,0.14)] transition hover:-translate-y-1 hover:shadow-[0_26px_60px_rgba(15,23,42,0.20)]"
+                  >
+                    <div className="relative">
+                      {product.imageUrl ? (
+                        <img
+                          src={product.imageUrl}
+                          alt={product.title}
+                          className="h-48 w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                        />
+                      ) : (
+                        <div className="flex h-48 items-center justify-center bg-slate-100 text-slate-400">
+                          No image
+                        </div>
+                      )}
+
+                      <div className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-slate-700">
+                        {product.quarter}
+                      </div>
+
+                      <div className="absolute right-4 top-4 rounded-full bg-violet-600 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-white">
+                        {product.grade}
+                      </div>
+                    </div>
+
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="line-clamp-2 text-lg font-black text-slate-900">
+                          {product.title}
+                        </h3>
+                        <span className="shrink-0 text-xl font-black text-violet-700">
+                          ₱{product.price}
+                        </span>
+                      </div>
+
+                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
+                        {product.description || product.fileName || "Classroom-ready file."}
+                      </p>
+
+                      <div className="mt-4 flex items-center justify-between">
+                        <div className="flex flex-wrap gap-2">
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                            {product.likes || 0} likes
+                          </span>
+                          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
+                            {product.sold || 0} sold
+                          </span>
+                        </div>
+
+                        <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-violet-700">
+                          Open
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="md:col-span-2 xl:col-span-3 rounded-[26px] border border-dashed border-white/15 bg-white/10 p-8 text-center">
+                  <p className="text-lg font-bold text-white">No exact match yet</p>
+                  <p className="mt-2 text-sm text-slate-300">
+                    Try a different grade, quarter, or keyword to find nearby classroom-ready files.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </section>
