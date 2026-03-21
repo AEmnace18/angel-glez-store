@@ -23,13 +23,16 @@ function bufferFromStream(stream: any): Promise<Buffer> {
 
 function contentType(name: string) {
   const lower = name.toLowerCase()
+
   if (/\.png$/i.test(lower)) return "image/png"
   if (/\.(jpg|jpeg)$/i.test(lower)) return "image/jpeg"
   if (/\.gif$/i.test(lower)) return "image/gif"
   if (/\.webp$/i.test(lower)) return "image/webp"
+  if (/\.svg$/i.test(lower)) return "image/svg+xml"
   if (/\.pdf$/i.test(lower)) return "application/pdf"
   if (/\.txt$/i.test(lower)) return "text/plain; charset=utf-8"
   if (/\.md$/i.test(lower)) return "text/markdown; charset=utf-8"
+  if (/\.html?$/i.test(lower)) return "text/html; charset=utf-8"
   if (/\.docx$/i.test(lower)) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   if (/\.doc$/i.test(lower)) return "application/msword"
   if (/\.pptx$/i.test(lower)) return "application/vnd.openxmlformats-officedocument.presentationml.presentation"
@@ -37,7 +40,23 @@ function contentType(name: string) {
   if (/\.xlsx$/i.test(lower)) return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   if (/\.xls$/i.test(lower)) return "application/vnd.ms-excel"
   if (/\.csv$/i.test(lower)) return "text/csv; charset=utf-8"
+
   return "application/octet-stream"
+}
+
+function extractObjectKey(input: string) {
+  if (!input) return ""
+
+  if (!input.startsWith("http://") && !input.startsWith("https://")) {
+    return input
+  }
+
+  try {
+    const url = new URL(input)
+    return url.pathname.replace(/^\/+/, "")
+  } catch {
+    return input
+  }
 }
 
 export async function GET(req: Request) {
@@ -84,10 +103,15 @@ export async function GET(req: Request) {
     }
 
     const fileName = String((data.products as any).file_name || "")
-    const objectKey = String((data.products as any).file_url || "")
+    const rawFileUrl = String((data.products as any).file_url || "")
+    const objectKey = extractObjectKey(rawFileUrl)
 
     if (!fileName.toLowerCase().endsWith(".zip")) {
       return NextResponse.json({ error: "This product is not a ZIP file" }, { status: 400 })
+    }
+
+    if (!objectKey) {
+      return NextResponse.json({ error: "ZIP file key is missing" }, { status: 400 })
     }
 
     const object = await r2.send(
