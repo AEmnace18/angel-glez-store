@@ -44,6 +44,13 @@ type ReviewDraft = {
   count: number
 }
 
+type ReviewEntry = {
+  id: string
+  rating: number
+  text: string
+  author: string
+}
+
 const toastStyle = {
   borderRadius: "14px",
   background: "#0f172a",
@@ -222,8 +229,11 @@ export default function Home() {
   const [folderPulse, setFolderPulse] = useState<string | null>(null)
   const [folderWhoosh, setFolderWhoosh] = useState(false)
   const [productRatings, setProductRatings] = useState<Record<number, ReviewDraft>>({})
+  const [productReviews, setProductReviews] = useState<Record<number, ReviewEntry[]>>({})
   const [reviewingProductId, setReviewingProductId] = useState<number | null>(null)
   const [hoveredStars, setHoveredStars] = useState(0)
+  const [selectedStars, setSelectedStars] = useState(0)
+  const [reviewText, setReviewText] = useState("")
 
   const triggerFolderFeel = (key: string) => {
     setFolderPulse(key)
@@ -269,6 +279,15 @@ export default function Home() {
     if (savedRatings) {
       try {
         setProductRatings(JSON.parse(savedRatings))
+      } catch {}
+    }
+  }, [])
+
+  useEffect(() => {
+    const savedReviews = localStorage.getItem("angel-glez-written-reviews")
+    if (savedReviews) {
+      try {
+        setProductReviews(JSON.parse(savedReviews))
       } catch {}
     }
   }, [])
@@ -379,14 +398,23 @@ export default function Home() {
     }
   }
 
-  const submitReview = (productId: number, star: number) => {
-    if (!star) {
+  const getRecentReviews = (productId: number) => {
+    return productReviews[productId] || []
+  }
+
+  const submitReview = (productId: number) => {
+    if (!selectedStars) {
       toast.error("Pick a star rating first.", { style: toastStyle })
       return
     }
 
+    if (!reviewText.trim()) {
+      toast.error("Write a short review first.", { style: toastStyle })
+      return
+    }
+
     const current = getRatingMeta(productId)
-    const totalScore = current.rating * current.count + star
+    const totalScore = current.rating * current.count + selectedStars
     const nextCount = current.count + 1
     const nextRating = Number((totalScore / nextCount).toFixed(1))
 
@@ -398,10 +426,26 @@ export default function Home() {
       },
     }
 
+    const nextReview = {
+      id: `${productId}-${Date.now()}`,
+      rating: selectedStars,
+      text: reviewText.trim(),
+      author: "Teacher",
+    }
+
+    const updatedReviews = {
+      ...productReviews,
+      [productId]: [nextReview, ...(productReviews[productId] || [])].slice(0, 5),
+    }
+
     setProductRatings(updatedRatings)
+    setProductReviews(updatedReviews)
     localStorage.setItem("angel-glez-ratings", JSON.stringify(updatedRatings))
+    localStorage.setItem("angel-glez-written-reviews", JSON.stringify(updatedReviews))
     setReviewingProductId(null)
     setHoveredStars(0)
+    setSelectedStars(0)
+    setReviewText("")
     toast.success("Review added", { style: toastStyle })
   }
 
@@ -1408,6 +1452,32 @@ export default function Home() {
                           Teacher-approved
                         </span>
                       </div>
+
+                      {getRecentReviews(selectedProduct.id).length > 0 && (
+                        <div className="mt-5 grid gap-3">
+                          {getRecentReviews(selectedProduct.id).slice(0, 2).map((review) => (
+                            <div
+                              key={review.id}
+                              className="rounded-[20px] border border-white/80 bg-white/85 p-4 shadow-[0_10px_24px_rgba(15,23,42,0.05)]"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="text-sm font-black text-slate-800">{review.author}</p>
+                                <div className="flex items-center gap-1 text-sm">
+                                  {Array.from({ length: 5 }).map((_, index) => (
+                                    <span
+                                      key={index}
+                                      className={index < review.rating ? "text-amber-400" : "text-slate-300"}
+                                    >
+                                      ★
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                              <p className="mt-2 text-sm leading-7 text-slate-500">{review.text}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1479,21 +1549,25 @@ export default function Home() {
           onClick={() => {
             setReviewingProductId(null)
             setHoveredStars(0)
+            setSelectedStars(0)
+            setReviewText("")
           }}
         >
           <div
-            className="w-full max-w-md rounded-[30px] border border-white bg-white p-6 shadow-[0_30px_120px_rgba(15,23,42,0.24)]"
+            className="w-full max-w-lg rounded-[30px] border border-white bg-white p-6 shadow-[0_30px_120px_rgba(15,23,42,0.24)]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-500">Write a Review</p>
-                <h3 className="mt-1 text-2xl font-black text-slate-900">Rate this product</h3>
+                <h3 className="mt-1 text-2xl font-black text-slate-900">Share your classroom feedback</h3>
               </div>
               <button
                 onClick={() => {
                   setReviewingProductId(null)
                   setHoveredStars(0)
+                  setSelectedStars(0)
+                  setReviewText("")
                 }}
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
               >
@@ -1501,28 +1575,58 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="mt-6 flex items-center justify-center gap-2">
-              {Array.from({ length: 5 }).map((_, index) => {
-                const star = index + 1
-                return (
-                  <button
-                    key={star}
-                    type="button"
-                    onMouseEnter={() => setHoveredStars(star)}
-                    onMouseLeave={() => setHoveredStars(0)}
-                    onClick={() => submitReview(reviewingProductId, star)}
-                    className={`text-4xl transition hover:scale-110 ${star <= hoveredStars ? "text-amber-400" : "text-slate-300"}`}
-                    aria-label={`Rate ${star} star${star > 1 ? "s" : ""}`}
-                  >
-                    ★
-                  </button>
-                )
-              })}
+            <div className="mt-6">
+              <p className="text-sm font-semibold text-slate-500">Your rating</p>
+              <div className="mt-3 flex items-center justify-center gap-2">
+                {Array.from({ length: 5 }).map((_, index) => {
+                  const star = index + 1
+                  const active = star <= (hoveredStars || selectedStars)
+                  return (
+                    <button
+                      key={star}
+                      type="button"
+                      onMouseEnter={() => setHoveredStars(star)}
+                      onMouseLeave={() => setHoveredStars(0)}
+                      onClick={() => setSelectedStars(star)}
+                      className={`text-4xl transition hover:scale-110 ${active ? "text-amber-400" : "text-slate-300"}`}
+                      aria-label={`Rate ${star} star${star > 1 ? "s" : ""}`}
+                    >
+                      ★
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
-            <p className="mt-4 text-center text-sm leading-7 text-slate-500">
-              Tap a star from 1 to 5 to leave your rating.
-            </p>
+            <div className="mt-6">
+              <label className="text-sm font-semibold text-slate-500">Your short review</label>
+              <textarea
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                placeholder="Example: Easy to use and very clean layout for classroom discussion."
+                className="mt-3 min-h-[120px] w-full rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-violet-300 focus:bg-white"
+              />
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setReviewingProductId(null)
+                  setHoveredStars(0)
+                  setSelectedStars(0)
+                  setReviewText("")
+                }}
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => submitReview(reviewingProductId)}
+                className="rounded-2xl bg-violet-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-violet-700"
+              >
+                Submit Review
+              </button>
+            </div>
           </div>
         </div>
       )}
