@@ -43,7 +43,7 @@ export default function AdminPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
-    const adminAuth = localStorage.getItem("angel-admin-auth")
+    const adminAuth = localStorage.getItem("angel-glez-admin-auth")
     if (adminAuth === "true") {
       setIsAuthed(true)
       loadProducts()
