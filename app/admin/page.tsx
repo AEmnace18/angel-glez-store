@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import toast from "react-hot-toast"
+import JSZip from "jszip"
 import { supabase } from "@/lib/supabase"
 
 type Product = {
@@ -21,8 +22,47 @@ type UploadingState = {
   file?: boolean
 }
 
+type ZipEntryDraft = {
+  entry_path: string
+  entry_name: string
+  entry_extension: string
+  entry_type: string
+  sort_order: number
+}
+
 const gradeOptions = ["Kinder", "Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5", "Grade 6"]
 const quarterOptions = ["Q1", "Q2", "Q3", "Q4"]
+
+function inferZipEntryType(fileName: string) {
+  const lower = fileName.toLowerCase()
+
+  if (/\.(png|jpg|jpeg|gif|webp)$/i.test(lower)) return "image"
+  if (/\.pdf$/i.test(lower)) return "pdf"
+  if (/\.(doc|docx)$/i.test(lower)) return "document"
+  if (/\.(xls|xlsx|csv)$/i.test(lower)) return "spreadsheet"
+  if (/\.(ppt|pptx)$/i.test(lower)) return "presentation"
+  if (/\.(txt|md)$/i.test(lower)) return "text"
+  return "other"
+}
+
+async function buildZipManifest(file: File): Promise<ZipEntryDraft[]> {
+  const zip = await JSZip.loadAsync(file)
+
+  return Object.values(zip.files)
+    .filter((entry) => !entry.dir)
+    .map((entry, index) => {
+      const entryName = entry.name.split("/").pop() || entry.name
+      const entryExtension = entryName.includes(".") ? entryName.split(".").pop() || "" : ""
+
+      return {
+        entry_path: entry.name,
+        entry_name: entryName,
+        entry_extension: entryExtension,
+        entry_type: inferZipEntryType(entryName),
+        sort_order: index,
+      }
+    })
+}
 
 export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -38,6 +78,8 @@ export default function AdminPage() {
   const [thumbnailUrl, setThumbnailUrl] = useState("")
   const [fileName, setFileName] = useState("")
   const [fileUrl, setFileUrl] = useState("")
+  const [uploadedProductFile, setUploadedProductFile] = useState<File | null>(null)
+  const [cachingZipEntries, setCachingZipEntries] = useState(false)
 
   const thumbnailInputRef = useRef<HTMLInputElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -95,6 +137,7 @@ export default function AdminPage() {
       } else {
         setFileUrl(result.url || "")
         setFileName(file.name)
+        setUploadedProductFile(file)
       }
 
       toast.success(type === "thumbnail" ? "Thumbnail uploaded." : "File uploaded.")
@@ -119,26 +162,63 @@ export default function AdminPage() {
       return
     }
 
+    const isZipPackage = fileName.toLowerCase().endsWith(".zip")
+
+    if (isZipPackage && !uploadedProductFile) {
+      toast.error("Please re-upload the ZIP file before saving.")
+      return
+    }
+
     setSaving(true)
 
-    const { error } = await supabase.from("products").insert({
-      title: title.trim(),
-      price: parsedPrice,
-      grade,
-      quarter,
-      thumbnail_url: thumbnailUrl || null,
-      file_name: fileName,
-      file_url: fileUrl,
-    })
+    const { data: insertedProduct, error } = await supabase
+      .from("products")
+      .insert({
+        title: title.trim(),
+        price: parsedPrice,
+        grade,
+        quarter,
+        thumbnail_url: thumbnailUrl || null,
+        file_name: fileName,
+        file_url: fileUrl,
+      })
+      .select("id")
+      .single()
 
-    setSaving(false)
-
-    if (error) {
+    if (error || !insertedProduct) {
+      setSaving(false)
       toast.error("Failed to create product.")
       return
     }
 
-    toast.success("Product added.")
+    if (isZipPackage && uploadedProductFile) {
+      try {
+        setCachingZipEntries(true)
+        const manifest = await buildZipManifest(uploadedProductFile)
+
+        if (manifest.length > 0) {
+          const { error: manifestError } = await supabase.from("product_zip_entries").insert(
+            manifest.map((entry) => ({
+              product_id: insertedProduct.id,
+              ...entry,
+            }))
+          )
+
+          if (manifestError) {
+            throw manifestError
+          }
+        }
+      } catch (error) {
+        console.error(error)
+        toast.error("Product saved, but ZIP contents were not cached.")
+      } finally {
+        setCachingZipEntries(false)
+      }
+    }
+
+    setSaving(false)
+
+    toast.success(isZipPackage ? "Product added and ZIP contents cached." : "Product added.")
     setTitle("")
     setPrice("")
     setGrade("Grade 1")
@@ -146,6 +226,7 @@ export default function AdminPage() {
     setThumbnailUrl("")
     setFileName("")
     setFileUrl("")
+    setUploadedProductFile(null)
     if (thumbnailInputRef.current) thumbnailInputRef.current.value = ""
     if (fileInputRef.current) fileInputRef.current.value = ""
     loadProducts()
@@ -324,10 +405,14 @@ export default function AdminPage() {
 
               <button
                 onClick={handleCreateProduct}
-                disabled={saving || uploading.file || uploading.thumbnail}
+                disabled={saving || uploading.file || uploading.thumbnail || cachingZipEntries}
                 className="inline-flex min-h-[52px] items-center justify-center rounded-2xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {saving ? "Saving product..." : "Add product"}
+                {saving || cachingZipEntries
+                  ? cachingZipEntries
+                    ? "Caching ZIP contents..."
+                    : "Saving product..."
+                  : "Add product"}
               </button>
             </div>
           </div>
@@ -348,7 +433,7 @@ export default function AdminPage() {
                 Prefer polished thumbnails with readable grade and quarter labels.
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                ZIP uploads are supported, so you can package product contents cleanly.
+                ZIP uploads are supported, and new ZIP products cache their contents for faster buyer loading.
               </div>
             </div>
           </div>
