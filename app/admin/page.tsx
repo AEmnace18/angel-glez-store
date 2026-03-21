@@ -214,7 +214,7 @@ export default function AdminPage() {
     }
 
     if (file && !isAllowedFile(file)) {
-      showError("Only Word, PowerPoint, ZIP, or RAR files are allowed")
+      showError("Only Word, PowerPoint, ZIP, or RAR files are allowed. ZIP works best for the in-site file viewer.")
       return
     }
 
@@ -612,7 +612,7 @@ export default function AdminPage() {
                         <p className="mt-1 text-sm text-slate-500">
                           {editingProductId
                             ? "Leave this unchanged if you want to keep the current file."
-                            : "Large files upload to Cloudflare R2 for better delivery."}
+                            : "Large files upload to Cloudflare R2 for better delivery. ZIP files can be opened inside the buyer\'s Purchases page."}
                         </p>
                       </div>
 

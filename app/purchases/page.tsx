@@ -25,6 +25,8 @@ export default function PurchasesPage() {
   const [loading, setLoading] = useState(true)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
 
+  const isZipFile = (fileName: string) => fileName.toLowerCase().endsWith(".zip")
+
   const loadPurchases = async (email: string, silent = false) => {
     if (!email) {
       setPurchases([])
@@ -93,6 +95,10 @@ export default function PurchasesPage() {
       supabase.removeChannel(channel)
     }
   }, [buyerEmail])
+
+  const openPurchasedFiles = (purchaseId: string) => {
+    window.location.href = `/purchases/${purchaseId}`
+  }
 
   const handleDownload = async (
     purchaseId: string,
@@ -181,6 +187,11 @@ export default function PurchasesPage() {
                         {product.grade} • {product.quarter}
                       </p>
                       <p className="text-sm text-slate-500">{product.file_name}</p>
+                      {isZipFile(product.file_name) && (
+                        <p className="mt-1 text-xs font-semibold text-violet-600">
+                          ZIP package • can be opened inside the website after approval
+                        </p>
+                      )}
                       <p className="font-bold text-violet-600">₱{product.price}</p>
 
                       <div className="mt-2">
@@ -206,15 +217,30 @@ export default function PurchasesPage() {
                   </div>
 
                   {purchase.status === "approved" ? (
-                    <button
-                      onClick={() =>
-                        handleDownload(purchase.id, product.file_url, product.file_name)
-                      }
-                      disabled={downloadingId === purchase.id}
-                      className="rounded-xl bg-emerald-600 px-4 py-2 font-bold text-white disabled:opacity-70"
-                    >
-                      {downloadingId === purchase.id ? "Preparing..." : "Download"}
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      {isZipFile(product.file_name) && (
+                        <button
+                          onClick={() => openPurchasedFiles(purchase.id)}
+                          className="rounded-xl bg-violet-600 px-4 py-2 font-bold text-white transition hover:bg-violet-700"
+                        >
+                          Open Files
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() =>
+                          handleDownload(purchase.id, product.file_url, product.file_name)
+                        }
+                        disabled={downloadingId === purchase.id}
+                        className="rounded-xl bg-emerald-600 px-4 py-2 font-bold text-white disabled:opacity-70"
+                      >
+                        {downloadingId === purchase.id
+                          ? "Preparing..."
+                          : isZipFile(product.file_name)
+                            ? "Download ZIP"
+                            : "Download"}
+                      </button>
+                    </div>
                   ) : purchase.status === "pending" ? (
                     <div className="rounded-xl bg-amber-50 px-4 py-2 text-sm font-bold text-amber-700">
                       Please wait for approval
