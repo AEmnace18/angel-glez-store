@@ -4,7 +4,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import toast from "react-hot-toast"
 import JSZip from "jszip"
-import { uploadToBlob } from "@/lib/blob-upload"
 import { supabase } from "@/lib/supabase"
 
 type Product = {
@@ -81,6 +80,7 @@ export default function AdminPage() {
   const [fileUrl, setFileUrl] = useState("")
   const [uploadedProductFile, setUploadedProductFile] = useState<File | null>(null)
   const [cachingZipEntries, setCachingZipEntries] = useState(false)
+  const [uploadMessage, setUploadMessage] = useState("")
 
   const thumbnailInputRef = useRef<HTMLInputElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -114,14 +114,14 @@ export default function AdminPage() {
     setLoading(false)
   }
 
-  async function uploadToR2(file: File) {
+  async function uploadToR2(file: File, folder: "thumbnails" | "products") {
     const signedRes = await fetch("/api/admin/r2-upload-url", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        fileName: file.name,
+        fileName: `${folder}/${Date.now()}-${file.name.replace(/\s+/g, "-")}`,
         contentType: file.type || "application/octet-stream",
       }),
     })
@@ -144,21 +144,31 @@ export default function AdminPage() {
       throw new Error("Failed to upload file to R2")
     }
 
+    const publicBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || ""
+
     return {
       objectKey: signedJson.objectKey as string,
+      publicUrl: publicBaseUrl
+        ? `${publicBaseUrl.replace(/\/$/, "")}/${String(signedJson.objectKey).replace(/^\//, "")}`
+        : "",
     }
   }
 
   async function handleAssetUpload(file: File, type: "thumbnail" | "file") {
     setUploading((prev) => ({ ...prev, [type]: true }))
+    setUploadMessage(
+      type === "thumbnail"
+        ? "Uploading thumbnail to Cloudflare R2..."
+        : "Uploading product file to Cloudflare R2..."
+    )
 
     try {
+      const uploaded = await uploadToR2(file, type === "thumbnail" ? "thumbnails" : "products")
+
       if (type === "thumbnail") {
-        const uploaded = await uploadToBlob(file, "thumbnails")
-        setThumbnailUrl(uploaded.url || "")
-        toast.success("Thumbnail uploaded.")
+        setThumbnailUrl(uploaded.publicUrl || uploaded.objectKey)
+        toast.success("Thumbnail uploaded to Cloudflare R2.")
       } else {
-        const uploaded = await uploadToR2(file)
         setFileUrl(uploaded.objectKey)
         setFileName(file.name)
         setUploadedProductFile(file)
@@ -169,6 +179,7 @@ export default function AdminPage() {
       toast.error(type === "thumbnail" ? "Thumbnail upload failed." : "File upload failed.")
     } finally {
       setUploading((prev) => ({ ...prev, [type]: false }))
+      setUploadMessage("")
     }
   }
 
@@ -332,7 +343,7 @@ export default function AdminPage() {
             <div className="mb-6">
               <h2 className="text-2xl font-black tracking-tight">Add a new product</h2>
               <p className="mt-2 text-sm text-slate-500">
-                Upload the teaching file to Cloudflare R2, set the title, price, grade, and quarter.
+                Upload both the thumbnail and teaching file to Cloudflare R2, then set the title, price, grade, and quarter.
               </p>
             </div>
 
@@ -405,7 +416,7 @@ export default function AdminPage() {
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
                   />
                   <p className="text-xs text-slate-500">
-                    {uploading.thumbnail ? "Uploading thumbnail..." : thumbnailUrl ? "Thumbnail ready." : "Optional"}
+                    {uploading.thumbnail ? "Uploading thumbnail to Cloudflare R2..." : thumbnailUrl ? "Thumbnail ready." : "Optional"}
                   </p>
                 </div>
 
@@ -425,6 +436,12 @@ export default function AdminPage() {
                   </p>
                 </div>
               </div>
+
+              {(uploading.thumbnail || uploading.file || uploadMessage) && (
+                <div className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-medium text-violet-700">
+                  {uploadMessage || "Uploading..."}
+                </div>
+              )}
 
               <button
                 onClick={handleCreateProduct}
