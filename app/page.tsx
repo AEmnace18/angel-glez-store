@@ -974,7 +974,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 pb-6 md:px-6">
+        <section className="mx-auto -mt-4 max-w-7xl px-4 pb-6 md:px-6">
           <div className="overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(49,46,129,0.95)_55%,rgba(15,23,42,0.98))] p-5 text-white shadow-[0_30px_90px_rgba(15,23,42,0.18)] md:p-6">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-2xl">
@@ -1007,19 +1007,19 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="w-full max-w-3xl rounded-[24px] border border-white/10 bg-white/10 p-3 backdrop-blur-xl md:p-4">
-                <div className="grid gap-2 md:grid-cols-[1fr_170px_170px_120px]">
+              <div className="w-full max-w-3xl rounded-[28px] border border-white/10 bg-white/10 p-4 backdrop-blur-xl md:p-5">
+                <div className="grid gap-3 md:grid-cols-[1fr_180px_180px_auto]">
                   <input
                     value={finderSearch}
                     onChange={(e) => setFinderSearch(e.target.value)}
                     placeholder="Search title, file name, or keyword"
-                    className="h-14 rounded-xl border border-white/10 bg-white/90 px-4 text-sm font-medium text-slate-900 outline-none transition focus:border-violet-400"
+                    className="rounded-2xl border border-white/10 bg-white/90 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-violet-400"
                   />
 
                   <select
                     value={finderGrade}
                     onChange={(e) => setFinderGrade(e.target.value)}
-                    className="h-14 rounded-xl border border-white/10 bg-white/90 px-4 text-sm font-bold text-slate-900 outline-none transition focus:border-violet-400"
+                    className="rounded-2xl border border-white/10 bg-white/90 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-violet-400"
                   >
                     <option>All Grades</option>
                     {grades.map((grade) => (
@@ -1032,7 +1032,7 @@ export default function Home() {
                   <select
                     value={finderQuarter}
                     onChange={(e) => setFinderQuarter(e.target.value)}
-                    className="h-14 rounded-xl border border-white/10 bg-white/90 px-4 text-sm font-bold text-slate-900 outline-none transition focus:border-violet-400"
+                    className="rounded-2xl border border-white/10 bg-white/90 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-violet-400"
                   >
                     <option>All Quarters</option>
                     {quarters.map((quarter) => (
@@ -1044,14 +1044,14 @@ export default function Home() {
 
                   <button
                     onClick={() => document.getElementById("find-my-cot-results")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                    className="h-14 rounded-xl bg-white px-4 text-sm font-black leading-tight text-slate-900 transition hover:scale-[1.02]"
+                    className="rounded-2xl bg-white px-5 py-3 text-sm font-black text-slate-900 transition hover:scale-[1.02]"
                   >
                     Find My COT
                   </button>
                 </div>
 
-                <div className="mt-2 flex items-center justify-between gap-2">
-                  <p className="text-xs font-medium text-white/75">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm text-white/80">
                     {smartFinderResults.length} {smartFinderResults.length === 1 ? "match" : "matches"} found
                   </p>
 
@@ -1061,7 +1061,7 @@ export default function Home() {
                       setFinderGrade("All Grades")
                       setFinderQuarter("All Quarters")
                     }}
-                    className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-bold text-white transition hover:bg-white/15"
+                    className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-white/15"
                   >
                     Reset filters
                   </button>
@@ -1530,6 +1530,58 @@ export default function Home() {
                     </div>
                   )}
                 </div>
+
+                <div className="mt-5 rounded-[28px] border border-slate-200 bg-slate-50 p-5 shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-500">Price</p>
+                      <p className="text-4xl font-black text-slate-900">₱{selectedProduct.price}</p>
+                    </div>
+
+                    {hasPurchased(selectedProduct.id) ? (
+                      <span className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-700">
+                        Purchased
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-amber-100 px-4 py-2 text-sm font-bold text-amber-700">
+                        Ready to buy
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {!hasPurchased(selectedProduct.id) && (
+                      <button
+                        onClick={() => addToCart(selectedProduct)}
+                        className={`inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 font-bold text-white transition ${
+                          isInCart(selectedProduct.id)
+                            ? "bg-slate-500"
+                            : "bg-amber-500 hover:bg-amber-600"
+                        }`}
+                      >
+                        <CartIcon className="h-4 w-4" />
+                        <span>{isInCart(selectedProduct.id) ? "Already in Cart" : "Add to Cart"}</span>
+                      </button>
+                    )}
+
+                    {hasPurchased(selectedProduct.id) ? (
+                      <button
+                        onClick={() => downloadProduct(selectedProduct)}
+                        disabled={downloadingId === selectedProduct.id}
+                        className="rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white transition hover:bg-emerald-700 disabled:opacity-70"
+                      >
+                        {downloadingId === selectedProduct.id ? "Preparing..." : "Download File"}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => buyNow(selectedProduct)}
+                        className="rounded-2xl bg-slate-900 px-5 py-3 font-bold text-white transition hover:bg-slate-800"
+                      >
+                        Buy Now
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="flex flex-col p-6 md:p-8">
@@ -1677,58 +1729,6 @@ export default function Home() {
                         </div>
                       )}
                     </div>
-                  </div>
-                </div>
-
-                <div className="mt-8 rounded-[28px] border border-slate-200 bg-slate-50 p-5">
-                  <div className="flex items-end justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-500">Price</p>
-                      <p className="text-4xl font-black text-slate-900">₱{selectedProduct.price}</p>
-                    </div>
-
-                    {hasPurchased(selectedProduct.id) ? (
-                      <span className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-700">
-                        Purchased
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-amber-100 px-4 py-2 text-sm font-bold text-amber-700">
-                        Ready to buy
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    {!hasPurchased(selectedProduct.id) && (
-                      <button
-                        onClick={() => addToCart(selectedProduct)}
-                        className={`inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 font-bold text-white transition ${
-                          isInCart(selectedProduct.id)
-                            ? "bg-slate-500"
-                            : "bg-amber-500 hover:bg-amber-600"
-                        }`}
-                      >
-                        <CartIcon className="h-4 w-4" />
-                        <span>{isInCart(selectedProduct.id) ? "Already in Cart" : "Add to Cart"}</span>
-                      </button>
-                    )}
-
-                    {hasPurchased(selectedProduct.id) ? (
-                      <button
-                        onClick={() => downloadProduct(selectedProduct)}
-                        disabled={downloadingId === selectedProduct.id}
-                        className="rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white transition hover:bg-emerald-700 disabled:opacity-70"
-                      >
-                        {downloadingId === selectedProduct.id ? "Preparing..." : "Download File"}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => buyNow(selectedProduct)}
-                        className="rounded-2xl bg-slate-900 px-5 py-3 font-bold text-white transition hover:bg-slate-800"
-                      >
-                        Buy Now
-                      </button>
-                    )}
                   </div>
                 </div>
 
