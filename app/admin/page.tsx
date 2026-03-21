@@ -1,6 +1,5 @@
 "use client"
 
-
 import { useEffect, useMemo, useRef, useState } from "react"
 import toast from "react-hot-toast"
 import JSZip from "jszip"
@@ -9,6 +8,7 @@ import { supabase } from "@/lib/supabase"
 type Product = {
   id: string
   title: string
+  description?: string | null
   price: number
   quarter: string
   grade: string
@@ -20,6 +20,11 @@ type Product = {
 type UploadingState = {
   thumbnail?: boolean
   file?: boolean
+}
+
+type UploadProgressState = {
+  thumbnail: number
+  file: number
 }
 
 type ZipEntryDraft = {
@@ -64,18 +69,44 @@ async function buildZipManifest(file: File): Promise<ZipEntryDraft[]> {
     })
 }
 
+function formatFileSize(bytes: number) {
+  if (!bytes) return "0 B"
+  const units = ["B", "KB", "MB", "GB"]
+  let value = bytes
+  let unitIndex = 0
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024
+    unitIndex += 1
+  }
+  return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`
+}
+
+function ProgressBar({ value }: { value: number }) {
+  return (
+    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+      <div
+        className="h-full rounded-full bg-violet-600 transition-all duration-200"
+        style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+      />
+    </div>
+  )
+}
+
 export default function AdminPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState<UploadingState>({})
+  const [uploadProgress, setUploadProgress] = useState<UploadProgressState>({ thumbnail: 0, file: 0 })
   const [isAuthed, setIsAuthed] = useState(false)
 
   const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
   const [price, setPrice] = useState("")
   const [grade, setGrade] = useState("Grade 1")
   const [quarter, setQuarter] = useState("Q1")
   const [thumbnailUrl, setThumbnailUrl] = useState("")
+  const [thumbnailPreview, setThumbnailPreview] = useState("")
   const [fileName, setFileName] = useState("")
   const [fileUrl, setFileUrl] = useState("")
   const [uploadedProductFile, setUploadedProductFile] = useState<File | null>(null)
@@ -114,7 +145,11 @@ export default function AdminPage() {
     setLoading(false)
   }
 
-  async function uploadToR2(file: File, folder: "thumbnails" | "products") {
+  async function uploadToR2WithProgress(
+    file: File,
+    folder: "thumbnails" | "products",
+    type: "thumbnail" | "file"
+  ) {
     const signedRes = await fetch("/api/admin/r2-upload-url", {
       method: "POST",
       headers: {
@@ -132,17 +167,30 @@ export default function AdminPage() {
       throw new Error(signedJson?.error || "Failed to create R2 upload URL")
     }
 
-    const uploadRes = await fetch(signedJson.uploadUrl, {
-      method: "PUT",
-      headers: {
-        "Content-Type": file.type || "application/octet-stream",
-      },
-      body: file,
-    })
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.open("PUT", signedJson.uploadUrl)
 
-    if (!uploadRes.ok) {
-      throw new Error("Failed to upload file to R2")
-    }
+      xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream")
+
+      xhr.upload.onprogress = (event) => {
+        if (!event.lengthComputable) return
+        const percent = Math.round((event.loaded / event.total) * 100)
+        setUploadProgress((prev) => ({ ...prev, [type]: percent }))
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          setUploadProgress((prev) => ({ ...prev, [type]: 100 }))
+          resolve()
+        } else {
+          reject(new Error("Failed to upload file to R2"))
+        }
+      }
+
+      xhr.onerror = () => reject(new Error("Failed to upload file to R2"))
+      xhr.send(file)
+    })
 
     const publicBaseUrl = process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL || ""
 
@@ -156,14 +204,20 @@ export default function AdminPage() {
 
   async function handleAssetUpload(file: File, type: "thumbnail" | "file") {
     setUploading((prev) => ({ ...prev, [type]: true }))
+    setUploadProgress((prev) => ({ ...prev, [type]: 0 }))
     setUploadMessage(
       type === "thumbnail"
         ? "Uploading thumbnail to Cloudflare R2..."
         : "Uploading product file to Cloudflare R2..."
     )
 
+    if (type === "thumbnail") {
+      const localPreview = URL.createObjectURL(file)
+      setThumbnailPreview(localPreview)
+    }
+
     try {
-      const uploaded = await uploadToR2(file, type === "thumbnail" ? "thumbnails" : "products")
+      const uploaded = await uploadToR2WithProgress(file, type === "thumbnail" ? "thumbnails" : "products", type)
 
       if (type === "thumbnail") {
         setThumbnailUrl(uploaded.publicUrl || uploaded.objectKey)
@@ -177,14 +231,20 @@ export default function AdminPage() {
     } catch (error) {
       console.error(error)
       toast.error(type === "thumbnail" ? "Thumbnail upload failed." : "File upload failed.")
+      if (type === "thumbnail") {
+        setThumbnailPreview("")
+      }
     } finally {
       setUploading((prev) => ({ ...prev, [type]: false }))
-      setUploadMessage("")
+      setTimeout(() => {
+        setUploadProgress((prev) => ({ ...prev, [type]: 0 }))
+        setUploadMessage("")
+      }, 500)
     }
   }
 
   async function handleCreateProduct() {
-    if (!title.trim() || !price.trim() || !grade || !quarter || !fileUrl || !fileName) {
+    if (!title.trim() || !description.trim() || !price.trim() || !grade || !quarter || !fileUrl || !fileName) {
       toast.error("Please complete all required fields.")
       return
     }
@@ -209,10 +269,12 @@ export default function AdminPage() {
       .from("products")
       .insert({
         title: title.trim(),
+        description: description.trim(),
         price: parsedPrice,
         grade,
         quarter,
         thumbnail_url: thumbnailUrl || null,
+        image_url: thumbnailUrl || null,
         file_name: fileName,
         file_url: fileUrl,
       })
@@ -254,10 +316,12 @@ export default function AdminPage() {
 
     toast.success(isZipPackage ? "Product added and ZIP contents cached." : "Product added.")
     setTitle("")
+    setDescription("")
     setPrice("")
     setGrade("Grade 1")
     setQuarter("Q1")
     setThumbnailUrl("")
+    setThumbnailPreview("")
     setFileName("")
     setFileUrl("")
     setUploadedProductFile(null)
@@ -294,89 +358,98 @@ export default function AdminPage() {
   if (!isAuthed && !loading) return null
 
   return (
-    <main className="min-h-screen bg-[#f6f1e8] px-4 py-8 text-slate-900 md:px-8">
-      <div className="mx-auto max-w-7xl space-y-8">
-        <section className="overflow-hidden rounded-[32px] border border-white/60 bg-white/80 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
-          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div className="space-y-3">
-              <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Admin dashboard
+    <main className="min-h-screen bg-[linear-gradient(180deg,#f7f3ec_0%,#f2ede4_100%)] px-4 py-6 text-slate-900 md:px-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <section className="rounded-[28px] border border-white/70 bg-white/85 px-5 py-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur md:px-7 md:py-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-2">
+              <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                Admin workspace
               </span>
               <div>
-                <h1 className="text-3xl font-black tracking-tight md:text-5xl">Manage your COT products</h1>
-                <p className="mt-3 max-w-2xl text-sm text-slate-600 md:text-base">
-                  Upload new teaching files, organize the library, and keep the store clean and ready for buyers.
+                <h1 className="text-2xl font-black tracking-tight md:text-4xl">Product Manager</h1>
+                <p className="mt-2 max-w-2xl text-sm text-slate-500">
+                  Upload premium teaching files, add clearer details, and keep the storefront clean.
                 </p>
               </div>
             </div>
 
             <a
               href="/admin/payments"
-              className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:scale-[1.01]"
+              className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
             >
               Open payments
             </a>
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-4">
-          <div className="rounded-[28px] border border-white/60 bg-white/85 p-5 shadow-sm">
-            <div className="text-3xl font-black">{stats.total}</div>
-            <div className="mt-1 text-sm text-slate-500">Total products</div>
-          </div>
-          <div className="rounded-[28px] border border-white/60 bg-white/85 p-5 shadow-sm">
-            <div className="text-3xl font-black">{stats.q1}</div>
-            <div className="mt-1 text-sm text-slate-500">Quarter 1</div>
-          </div>
-          <div className="rounded-[28px] border border-white/60 bg-white/85 p-5 shadow-sm">
-            <div className="text-3xl font-black">{stats.q2 + stats.q3}</div>
-            <div className="mt-1 text-sm text-slate-500">Quarter 2–3</div>
-          </div>
-          <div className="rounded-[28px] border border-white/60 bg-white/85 p-5 shadow-sm">
-            <div className="text-3xl font-black">{stats.q4}</div>
-            <div className="mt-1 text-sm text-slate-500">Quarter 4</div>
-          </div>
+        <section className="grid gap-3 md:grid-cols-4">
+          {[
+            { label: "Total products", value: stats.total },
+            { label: "Quarter 1", value: stats.q1 },
+            { label: "Quarter 2–3", value: stats.q2 + stats.q3 },
+            { label: "Quarter 4", value: stats.q4 },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-[24px] border border-white/70 bg-white/85 px-4 py-4 shadow-sm"
+            >
+              <p className="text-2xl font-black text-slate-900">{item.value}</p>
+              <p className="mt-1 text-xs font-medium text-slate-500">{item.label}</p>
+            </div>
+          ))}
         </section>
 
-        <section className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="rounded-[32px] border border-white/60 bg-white/85 p-6 shadow-[0_12px_40px_rgba(15,23,42,0.06)] md:p-8">
-            <div className="mb-6">
-              <h2 className="text-2xl font-black tracking-tight">Add a new product</h2>
-              <p className="mt-2 text-sm text-slate-500">
-                Upload both the thumbnail and teaching file to Cloudflare R2, then set the title, price, grade, and quarter.
+        <section className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
+          <div className="rounded-[28px] border border-white/70 bg-white/88 p-5 shadow-[0_12px_40px_rgba(15,23,42,0.05)] md:p-6">
+            <div className="mb-5">
+              <h2 className="text-xl font-black tracking-tight">Add product</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Upload the thumbnail and teaching file to Cloudflare R2, then save the product.
               </p>
             </div>
 
-            <div className="grid gap-5">
+            <div className="grid gap-4">
               <div className="grid gap-2">
-                <label className="text-sm font-semibold">Title</label>
+                <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Title</label>
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Example: AP 6 Q4 W3 Pagkilos at Pagtugon"
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-slate-400"
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-violet-400"
                 />
               </div>
 
-              <div className="grid gap-5 md:grid-cols-3">
+              <div className="grid gap-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Description</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Short description for teachers. Example: Includes editable PPT, worksheet, and visual materials."
+                  rows={3}
+                  className="resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-violet-400"
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
                 <div className="grid gap-2">
-                  <label className="text-sm font-semibold">Price</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Price</label>
                   <input
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                     placeholder="200"
                     type="number"
                     min="0"
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-slate-400"
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-violet-400"
                   />
                 </div>
 
                 <div className="grid gap-2">
-                  <label className="text-sm font-semibold">Grade</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Grade</label>
                   <select
                     value={grade}
                     onChange={(e) => setGrade(e.target.value)}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-slate-400"
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-violet-400"
                   >
                     {gradeOptions.map((option) => (
                       <option key={option} value={option}>
@@ -387,11 +460,11 @@ export default function AdminPage() {
                 </div>
 
                 <div className="grid gap-2">
-                  <label className="text-sm font-semibold">Quarter</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Quarter</label>
                   <select
                     value={quarter}
                     onChange={(e) => setQuarter(e.target.value)}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-slate-400"
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-violet-400"
                   >
                     {quarterOptions.map((option) => (
                       <option key={option} value={option}>
@@ -402,51 +475,109 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="grid gap-2">
-                  <label className="text-sm font-semibold">Thumbnail image</label>
-                  <input
-                    ref={thumbnailInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handleAssetUpload(file, "thumbnail")
-                    }}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                  />
-                  <p className="text-xs text-slate-500">
-                    {uploading.thumbnail ? "Uploading thumbnail to Cloudflare R2..." : thumbnailUrl ? "Thumbnail ready." : "Optional"}
-                  </p>
+              <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
+                <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50/80 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Thumbnail preview</p>
+                  <div className="mt-3 overflow-hidden rounded-[20px] border border-slate-200 bg-white">
+                    {thumbnailPreview || thumbnailUrl ? (
+                      <img
+                        src={thumbnailPreview || thumbnailUrl}
+                        alt="Thumbnail preview"
+                        className="h-44 w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-44 items-center justify-center text-sm text-slate-400">
+                        No thumbnail yet
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-3 grid gap-2">
+                    <input
+                      ref={thumbnailInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) handleAssetUpload(file, "thumbnail")
+                      }}
+                      className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-xs"
+                    />
+
+                    {uploading.thumbnail ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs font-medium text-slate-600">
+                          <span>Uploading thumbnail</span>
+                          <span>{uploadProgress.thumbnail}%</span>
+                        </div>
+                        <ProgressBar value={uploadProgress.thumbnail} />
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500">
+                        {thumbnailUrl ? "Thumbnail uploaded and ready." : "Recommended: clear cover image."}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                <div className="grid gap-2">
-                  <label className="text-sm font-semibold">Product file</label>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handleAssetUpload(file, "file")
-                    }}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                  />
-                  <p className="text-xs text-slate-500">
-                    {uploading.file ? "Uploading file to Cloudflare R2..." : fileName ? fileName : "Required"}
-                  </p>
+                <div className="rounded-[24px] border border-slate-200 bg-slate-50/70 p-4">
+                  <div className="grid gap-2">
+                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Product file</label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) handleAssetUpload(file, "file")
+                      }}
+                      className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-xs"
+                    />
+                  </div>
+
+                  <div className="mt-4 rounded-[20px] border border-slate-200 bg-white p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-900">
+                          {fileName || "No file selected"}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {uploadedProductFile ? formatFileSize(uploadedProductFile.size) : "ZIP, PPTX, DOCX, XLSX, PDF, and more"}
+                        </p>
+                      </div>
+                      {fileName && (
+                        <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-700">
+                          Ready
+                        </span>
+                      )}
+                    </div>
+
+                    {uploading.file ? (
+                      <div className="mt-4 space-y-2">
+                        <div className="flex items-center justify-between text-xs font-medium text-slate-600">
+                          <span>Uploading to Cloudflare R2</span>
+                          <span>{uploadProgress.file}%</span>
+                        </div>
+                        <ProgressBar value={uploadProgress.file} />
+                      </div>
+                    ) : (
+                      <p className="mt-4 text-xs text-slate-500">
+                        ZIP files will also cache their contents for faster purchased-file loading.
+                      </p>
+                    )}
+                  </div>
+
+                  {(uploading.thumbnail || uploading.file || uploadMessage) && (
+                    <div className="mt-4 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-medium text-violet-700">
+                      {uploadMessage || "Uploading..."}
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {(uploading.thumbnail || uploading.file || uploadMessage) && (
-                <div className="rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-medium text-violet-700">
-                  {uploadMessage || "Uploading..."}
-                </div>
-              )}
 
               <button
                 onClick={handleCreateProduct}
                 disabled={saving || uploading.file || uploading.thumbnail || cachingZipEntries}
-                className="inline-flex min-h-[52px] items-center justify-center rounded-2xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {saving || cachingZipEntries
                   ? cachingZipEntries
@@ -457,52 +588,52 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div className="rounded-[32px] border border-white/60 bg-slate-950 p-6 text-white shadow-[0_12px_40px_rgba(15,23,42,0.12)] md:p-8">
-            <div className="mb-6">
-              <h2 className="text-2xl font-black tracking-tight">Quick admin notes</h2>
-              <p className="mt-2 text-sm text-white/65">
-                Keep uploads neat so buyers get a clean premium experience.
+          <div className="rounded-[28px] border border-slate-900/10 bg-slate-950 p-5 text-white shadow-[0_12px_40px_rgba(15,23,42,0.12)] md:p-6">
+            <div className="mb-5">
+              <h2 className="text-xl font-black tracking-tight">Upload guidance</h2>
+              <p className="mt-1 text-sm text-white/65">
+                Keep the admin workflow cleaner and more premium.
               </p>
             </div>
 
-            <div className="space-y-4 text-sm text-white/80">
+            <div className="space-y-3 text-sm text-white/80">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                Use clear file titles so teachers know exactly what they are buying.
+                Use concise titles and a short description so teachers understand the product instantly.
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                Prefer polished thumbnails with readable grade and quarter labels.
+                Use a clean thumbnail with visible grade and quarter labels for stronger storefront previews.
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                Product ZIP files upload to Cloudflare R2, and new ZIP products cache their contents for faster buyer loading.
+                ZIP packages stay in Cloudflare R2 and can cache their contents for faster buyer access later.
               </div>
             </div>
           </div>
         </section>
 
-        <section className="rounded-[32px] border border-white/60 bg-white/85 p-6 shadow-[0_12px_40px_rgba(15,23,42,0.06)] md:p-8">
-          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <section className="rounded-[28px] border border-white/70 bg-white/88 p-5 shadow-[0_12px_40px_rgba(15,23,42,0.05)] md:p-6">
+          <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-2xl font-black tracking-tight">Uploaded products</h2>
-              <p className="mt-2 text-sm text-slate-500">
-                Review everything currently listed in the store.
+              <h2 className="text-xl font-black tracking-tight">Uploaded products</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Compact product cards with cleaner spacing and smaller typography.
               </p>
             </div>
           </div>
 
           {loading ? (
-            <div className="rounded-3xl border border-dashed border-slate-200 px-6 py-14 text-center text-sm text-slate-500">
+            <div className="rounded-3xl border border-dashed border-slate-200 px-6 py-12 text-center text-sm text-slate-500">
               Loading products...
             </div>
           ) : products.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-slate-200 px-6 py-14 text-center text-sm text-slate-500">
+            <div className="rounded-3xl border border-dashed border-slate-200 px-6 py-12 text-center text-sm text-slate-500">
               No products yet.
             </div>
           ) : (
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {products.map((product) => (
                 <article
                   key={product.id}
-                  className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm"
+                  className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm"
                 >
                   <div className="aspect-[16/10] bg-slate-100">
                     {product.thumbnail_url ? (
@@ -518,26 +649,33 @@ export default function AdminPage() {
                     )}
                   </div>
 
-                  <div className="space-y-4 p-5">
+                  <div className="space-y-3 p-4">
                     <div>
-                      <h3 className="line-clamp-2 text-lg font-black leading-tight">{product.title}</h3>
-                      <p className="mt-2 text-sm text-slate-500">
+                      <h3 className="line-clamp-2 text-base font-black leading-tight text-slate-900">
+                        {product.title}
+                      </h3>
+                      <p className="mt-1 text-xs text-slate-500">
                         {product.grade} • {product.quarter}
                       </p>
+                      {product.description ? (
+                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">
+                          {product.description}
+                        </p>
+                      ) : null}
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-700">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                         ₱{product.price}
                       </span>
-                      <span className="max-w-[60%] truncate text-xs text-slate-500">
+                      <span className="max-w-[62%] truncate text-[11px] text-slate-500">
                         {product.file_name || "No file"}
                       </span>
                     </div>
 
                     <button
                       onClick={() => handleDeleteProduct(product.id)}
-                      className="inline-flex min-h-[44px] w-full items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
+                      className="inline-flex min-h-[40px] w-full items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
                     >
                       Delete product
                     </button>
