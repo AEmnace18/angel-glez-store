@@ -613,6 +613,12 @@ export default function Home() {
                         Quarters
                       </a>
                       <a
+                        href="#find-my-cot"
+                        className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700"
+                      >
+                        Find My COT
+                      </a>
+                      <a
                         href="/shop"
                         className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-stone-100 hover:text-slate-900"
                       >
@@ -669,6 +675,12 @@ export default function Home() {
                         className="rounded-2xl px-2 py-2 text-center text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
                       >
                         Quarters
+                      </a>
+                      <a
+                        href="#find-my-cot"
+                        className="rounded-2xl px-2 py-2 text-center text-xs font-semibold text-violet-700 transition hover:bg-violet-50"
+                      >
+                        Finder
                       </a>
                       <a
                         href="/shop"
@@ -974,7 +986,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mx-auto -mt-4 max-w-7xl px-4 pb-6 md:px-6">
+        <section id="find-my-cot" className="mx-auto -mt-4 max-w-7xl px-4 pb-6 md:px-6">
           <div className="overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(49,46,129,0.95)_55%,rgba(15,23,42,0.98))] p-5 text-white shadow-[0_30px_90px_rgba(15,23,42,0.18)] md:p-6">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-2xl">
