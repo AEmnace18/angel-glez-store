@@ -1338,12 +1338,46 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="mt-5 rounded-[24px] border border-violet-100 bg-[linear-gradient(180deg,#fcfbff_0%,#f7f3ff_100%)] p-4 shadow-[0_12px_30px_rgba(124,58,237,0.08)]">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-500">Teacher Rating</p>
-                      <div className="mt-2 flex items-center gap-3">
-                        <div className="flex items-center gap-1 text-xl">
+                <div className="mt-5 overflow-hidden rounded-[28px] border border-violet-100 bg-[linear-gradient(180deg,#fdfbff_0%,#f6f1ff_100%)] shadow-[0_16px_38px_rgba(124,58,237,0.10)]">
+                  <div className="border-b border-violet-100/80 px-5 py-4 md:px-6">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.18em] text-violet-500">
+                          Teacher Reviews
+                        </p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          Trusted classroom feedback from buyers and fellow teachers
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setReviewingProductId(selectedProduct.id)
+                          setHoveredStars(0)
+                        }}
+                        className="rounded-2xl border border-violet-200 bg-white/90 px-4 py-2.5 text-sm font-bold text-violet-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-violet-50"
+                      >
+                        Write a Review
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-5 px-5 py-5 md:grid-cols-[auto_1fr] md:px-6">
+                    <div className="min-w-[130px] rounded-[24px] border border-white/70 bg-white/80 px-5 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_10px_24px_rgba(15,23,42,0.05)]">
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+                        Average
+                      </p>
+                      <div className="mt-2 flex items-end gap-2">
+                        <span className="text-5xl font-black leading-none text-slate-900">
+                          {getRatingMeta(selectedProduct.id).rating.toFixed(1)}
+                        </span>
+                        <span className="pb-1 text-sm font-bold text-slate-400">/ 5</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col justify-center">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-1 text-2xl">
                           {Array.from({ length: 5 }).map((_, index) => (
                             <span
                               key={index}
@@ -1353,21 +1387,28 @@ export default function Home() {
                             </span>
                           ))}
                         </div>
-                        <div className="text-sm font-bold text-slate-700">
-                          {getRatingMeta(selectedProduct.id).rating.toFixed(1)} ({getRatingMeta(selectedProduct.id).count} reviews)
+
+                        <div className="rounded-full border border-violet-200 bg-white/85 px-3 py-1.5 text-sm font-bold text-slate-700">
+                          {getRatingMeta(selectedProduct.id).count} teacher reviews
                         </div>
                       </div>
-                    </div>
 
-                    <button
-                      onClick={() => {
-                        setReviewingProductId(selectedProduct.id)
-                        setHoveredStars(0)
-                      }}
-                      className="rounded-2xl border border-violet-200 bg-white px-4 py-2.5 text-sm font-bold text-violet-700 transition hover:-translate-y-0.5 hover:bg-violet-50"
-                    >
-                      Write a Review
-                    </button>
+                      <p className="mt-3 text-sm leading-7 text-slate-500">
+                        Rated highly for classroom readiness, clear formatting, and easy use during lesson preparation.
+                      </p>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
+                          Classroom-ready
+                        </span>
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700">
+                          Easy to use
+                        </span>
+                        <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-700">
+                          Teacher-approved
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
