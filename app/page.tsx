@@ -1438,7 +1438,7 @@ export default function Home() {
                       </div>
 
                       <p className="mt-3 text-sm leading-7 text-slate-500">
-                        Rated highly for classroom readiness, clear formatting, and easy use during lesson preparation.
+                        
                       </p>
 
                       <div className="mt-4 flex flex-wrap gap-2">
