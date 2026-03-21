@@ -569,13 +569,13 @@ export default function Home() {
         <section className="relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_10%,rgba(79,70,229,0.18),transparent_24%),radial-gradient(circle_at_84%_14%,rgba(217,119,6,0.16),transparent_22%),radial-gradient(circle_at_78%_70%,rgba(100,116,139,0.18),transparent_28%),linear-gradient(180deg,rgba(236,230,220,0.98),rgba(219,210,197,0.97))]" />
           <div className="absolute inset-0 opacity-[0.36]" style={{ backgroundImage: "linear-gradient(rgba(15,23,42,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.07) 1px, transparent 1px)", backgroundSize: "46px 46px", maskImage: "linear-gradient(180deg, rgba(0,0,0,0.95), transparent 88%)", WebkitMaskImage: "linear-gradient(180deg, rgba(0,0,0,0.95), transparent 88%)" }} />
-          <div className="pointer-events-none absolute -left-24 top-10 h-80 w-80 rounded-full bg-indigo-500/16 blur-3xl" />
-          <div className="pointer-events-none absolute right-[-80px] top-8 h-96 w-96 rounded-full bg-amber-400/16 blur-3xl" />
-          <div className="pointer-events-none absolute left-[6%] top-[16%] h-56 w-56 rounded-full bg-white/30 blur-3xl" />
-          <div className="pointer-events-none absolute right-[10%] top-[22%] h-72 w-72 rounded-full bg-white/18 blur-3xl" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-[560px] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.55),transparent_62%)]" />
-          <div className="pointer-events-none absolute inset-x-[7%] top-[12%] h-[420px] rounded-[48px] border border-white/35 bg-[linear-gradient(135deg,rgba(255,255,255,0.20),rgba(255,255,255,0.04))] shadow-[0_40px_120px_rgba(15,23,42,0.06)] backdrop-blur-[2px]" style={{ transform: "rotate(-3deg)" }} />
-          <div className="pointer-events-none absolute right-[8%] top-[18%] h-[320px] w-[320px] rounded-[40px] border border-white/30 bg-[linear-gradient(135deg,rgba(99,102,241,0.10),rgba(255,255,255,0.04))] shadow-[0_30px_90px_rgba(79,70,229,0.08)]" style={{ transform: "rotate(9deg)" }} />
+          <div className="pointer-events-none absolute -left-24 top-10 h-80 w-80 rounded-full bg-indigo-500/16 blur-3xl animate-float-orb-a" />
+          <div className="pointer-events-none absolute right-[-80px] top-8 h-96 w-96 rounded-full bg-amber-400/16 blur-3xl animate-float-orb-b" />
+          <div className="pointer-events-none absolute left-[6%] top-[16%] h-56 w-56 rounded-full bg-white/30 blur-3xl animate-float-orb-c" />
+          <div className="pointer-events-none absolute right-[10%] top-[22%] h-72 w-72 rounded-full bg-white/18 blur-3xl animate-float-orb-d" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[560px] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.55),transparent_62%)] animate-glow-breathe" />
+          <div className="pointer-events-none absolute inset-x-[7%] top-[12%] h-[420px] rounded-[48px] border border-white/35 bg-[linear-gradient(135deg,rgba(255,255,255,0.20),rgba(255,255,255,0.04))] shadow-[0_40px_120px_rgba(15,23,42,0.06)] backdrop-blur-[2px] animate-drift-panel-a" style={{ transform: "rotate(-3deg)" }} />
+          <div className="pointer-events-none absolute right-[8%] top-[18%] h-[320px] w-[320px] rounded-[40px] border border-white/30 bg-[linear-gradient(135deg,rgba(99,102,241,0.10),rgba(255,255,255,0.04))] shadow-[0_30px_90px_rgba(79,70,229,0.08)] animate-drift-panel-b" style={{ transform: "rotate(9deg)" }} />
 
           <div className="relative">
             <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 md:px-6 md:pt-5">
@@ -2031,6 +2031,72 @@ export default function Home() {
           scroll-behavior: smooth;
         }
       `}</style>
+
+      <style jsx global>{`
+        .animate-float-orb-a {
+          animation: floatOrbA 16s ease-in-out infinite;
+        }
+
+        .animate-float-orb-b {
+          animation: floatOrbB 19s ease-in-out infinite;
+        }
+
+        .animate-float-orb-c {
+          animation: floatOrbC 14s ease-in-out infinite;
+        }
+
+        .animate-float-orb-d {
+          animation: floatOrbD 18s ease-in-out infinite;
+        }
+
+        .animate-drift-panel-a {
+          animation: driftPanelA 20s ease-in-out infinite;
+        }
+
+        .animate-drift-panel-b {
+          animation: driftPanelB 24s ease-in-out infinite;
+        }
+
+        .animate-glow-breathe {
+          animation: glowBreathe 12s ease-in-out infinite;
+        }
+
+        @keyframes floatOrbA {
+          0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+          50% { transform: translate3d(34px, 20px, 0) scale(1.05); }
+        }
+
+        @keyframes floatOrbB {
+          0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+          50% { transform: translate3d(-30px, 28px, 0) scale(1.06); }
+        }
+
+        @keyframes floatOrbC {
+          0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.28; }
+          50% { transform: translate3d(22px, -18px, 0); opacity: 0.38; }
+        }
+
+        @keyframes floatOrbD {
+          0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.18; }
+          50% { transform: translate3d(-18px, 24px, 0); opacity: 0.26; }
+        }
+
+        @keyframes driftPanelA {
+          0%, 100% { transform: rotate(-3deg) translate3d(0, 0, 0); }
+          50% { transform: rotate(-4deg) translate3d(10px, 12px, 0); }
+        }
+
+        @keyframes driftPanelB {
+          0%, 100% { transform: rotate(9deg) translate3d(0, 0, 0); }
+          50% { transform: rotate(7deg) translate3d(-14px, 10px, 0); }
+        }
+
+        @keyframes glowBreathe {
+          0%, 100% { opacity: 0.92; }
+          50% { opacity: 1; }
+        }
+      `}</style>
+
     </>
   )
 }
