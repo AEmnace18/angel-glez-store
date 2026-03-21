@@ -406,6 +406,28 @@ export default function AdminPage() {
     }
   }, [products])
 
+  const formChecklist = [
+    { label: "Title", done: title.trim().length > 0 },
+    { label: "Description", done: description.trim().length > 0 },
+    { label: "Price", done: price.trim().length > 0 && Number(price) > 0 },
+    { label: "Grade", done: grade.trim().length > 0 },
+    { label: "Quarter", done: quarter.trim().length > 0 },
+    { label: "Thumbnail", done: !!thumbnailUrl },
+    { label: "Product File", done: !!fileUrl && !!fileName },
+  ]
+
+  const completedChecklist = formChecklist.filter((item) => item.done).length
+  const formReady = completedChecklist === formChecklist.length
+  const currentStatus = uploading.file || uploading.thumbnail
+    ? "Uploading assets"
+    : saving
+      ? "Saving product"
+      : formReady
+        ? editingProductId
+          ? "Ready to save changes"
+          : "Ready to upload"
+        : "Draft in progress"
+
   if (!isAuthed && !loading) return null
 
   return (
@@ -658,22 +680,110 @@ export default function AdminPage() {
           </div>
 
           <div className="rounded-[28px] border border-slate-900/10 bg-slate-950 p-5 text-white shadow-[0_12px_40px_rgba(15,23,42,0.12)] md:p-6">
-            <div className="mb-5">
-              <h2 className="text-xl font-black tracking-tight">Upload guidance</h2>
-              <p className="mt-1 text-sm text-white/65">
-                Keep the admin workflow cleaner and more premium.
-              </p>
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-black tracking-tight">Live product summary</h2>
+                <p className="mt-1 text-sm text-white/65">
+                  See the current product draft before saving it to the storefront.
+                </p>
+              </div>
+
+              <span className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] ${
+                formReady
+                  ? "bg-emerald-500/15 text-emerald-300"
+                  : "bg-amber-400/15 text-amber-300"
+              }`}>
+                {currentStatus}
+              </span>
             </div>
 
-            <div className="space-y-3 text-sm text-white/80">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                Use concise titles and a short description so teachers understand the product instantly.
+            <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+              <div className="flex items-start gap-4">
+                <div className="h-24 w-24 shrink-0 overflow-hidden rounded-[20px] border border-white/10 bg-white/10">
+                  {thumbnailPreview || thumbnailUrl ? (
+                    <img
+                      src={thumbnailPreview || thumbnailUrl}
+                      alt="Live thumbnail preview"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-center text-xs text-white/45">
+                      No thumbnail
+                    </div>
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-2 text-lg font-black text-white">
+                    {title.trim() || "Untitled product draft"}
+                  </p>
+                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-white/65">
+                    {description.trim() || "Add a short product description so teachers can quickly understand the file."}
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/80">
+                      {grade || "No grade"}
+                    </span>
+                    <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/80">
+                      {quarter || "No quarter"}
+                    </span>
+                    <span className="rounded-full bg-violet-500/20 px-3 py-1 text-xs font-bold text-violet-200">
+                      ₱{price.trim() || "0"}
+                    </span>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                Use a clean thumbnail with visible grade and quarter labels for stronger storefront previews.
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/45">Thumbnail</p>
+                <p className="mt-2 text-sm font-semibold text-white">
+                  {thumbnailUrl ? "Uploaded and ready" : "Waiting for thumbnail"}
+                </p>
+                <p className="mt-1 text-xs text-white/45">
+                  {thumbnailUrl ? "Storefront cover looks connected." : "Add a clean preview image for stronger product cards."}
+                </p>
               </div>
+
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                ZIP packages stay in Cloudflare R2 and can cache their contents for faster buyer access later.
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/45">Product file</p>
+                <p className="mt-2 truncate text-sm font-semibold text-white">
+                  {fileName || "No file selected"}
+                </p>
+                <p className="mt-1 text-xs text-white/45">
+                  {uploadedProductFile ? formatFileSize(uploadedProductFile.size) : fileUrl ? "Connected to Cloudflare R2" : "Waiting for upload"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-[24px] border border-white/10 bg-white/5 p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="text-sm font-black text-white">Draft checklist</p>
+                <span className="text-xs font-bold text-white/55">
+                  {completedChecklist}/{formChecklist.length} complete
+                </span>
+              </div>
+
+              <div className="grid gap-2">
+                {formChecklist.map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/5 px-3 py-2.5"
+                  >
+                    <span className="text-sm text-white/80">{item.label}</span>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                        item.done
+                          ? "bg-emerald-500/15 text-emerald-300"
+                          : "bg-white/10 text-white/45"
+                      }`}
+                    >
+                      {item.done ? "Done" : "Pending"}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
