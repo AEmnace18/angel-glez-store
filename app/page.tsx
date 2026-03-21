@@ -974,9 +974,9 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 pb-6 md:px-6">
-          <div className="overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(49,46,129,0.95)_55%,rgba(15,23,42,0.98))] p-6 text-white shadow-[0_30px_90px_rgba(15,23,42,0.18)] md:p-8">
-            <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+        <section className="mx-auto -mt-4 max-w-7xl px-4 pb-6 md:px-6">
+          <div className="overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(49,46,129,0.95)_55%,rgba(15,23,42,0.98))] p-5 text-white shadow-[0_30px_90px_rgba(15,23,42,0.18)] md:p-6">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-2xl">
                 <div className="inline-flex rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-violet-200">
                   Find My COT
@@ -984,7 +984,7 @@ export default function Home() {
                 <h2 className="mt-4 text-3xl font-black tracking-tight md:text-5xl">
                   Find the right classroom file in seconds
                 </h2>
-                <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300 md:text-base">
+                <p className="mt-3 max-w-xl text-sm leading-7 text-slate-300 md:text-base">
                   Match your lesson faster by filtering the library by grade, quarter, and keyword. Open the exact material you need without digging through folders one by one.
                 </p>
 
@@ -1069,7 +1069,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div id="find-my-cot-results" className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div id="find-my-cot-results" className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {smartFinderResults.length > 0 ? (
                 smartFinderResults.map((product) => (
                   <button
