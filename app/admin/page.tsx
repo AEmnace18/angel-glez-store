@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import toast from "react-hot-toast"
 import JSZip from "jszip"
+import { uploadToBlob } from "@/lib/blob-upload"
 import { supabase } from "@/lib/supabase"
 
 type Product = {
@@ -113,34 +114,56 @@ export default function AdminPage() {
     setLoading(false)
   }
 
-  async function uploadToBlob(file: File, type: "thumbnail" | "file") {
+  async function uploadToR2(file: File) {
+    const signedRes = await fetch("/api/admin/r2-upload-url", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type || "application/octet-stream",
+      }),
+    })
+
+    const signedJson = await signedRes.json()
+
+    if (!signedRes.ok || !signedJson?.uploadUrl || !signedJson?.objectKey) {
+      throw new Error(signedJson?.error || "Failed to create R2 upload URL")
+    }
+
+    const uploadRes = await fetch(signedJson.uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type || "application/octet-stream",
+      },
+      body: file,
+    })
+
+    if (!uploadRes.ok) {
+      throw new Error("Failed to upload file to R2")
+    }
+
+    return {
+      objectKey: signedJson.objectKey as string,
+    }
+  }
+
+  async function handleAssetUpload(file: File, type: "thumbnail" | "file") {
     setUploading((prev) => ({ ...prev, [type]: true }))
 
     try {
-      const formData = new FormData()
-      formData.append("file", file)
-      formData.append("type", type)
-
-      const response = await fetch("/api/blob", {
-        method: "POST",
-        body: formData,
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result?.error || "Upload failed")
-      }
-
       if (type === "thumbnail") {
-        setThumbnailUrl(result.url || "")
+        const uploaded = await uploadToBlob(file, "thumbnails")
+        setThumbnailUrl(uploaded.url || "")
+        toast.success("Thumbnail uploaded.")
       } else {
-        setFileUrl(result.url || "")
+        const uploaded = await uploadToR2(file)
+        setFileUrl(uploaded.objectKey)
         setFileName(file.name)
         setUploadedProductFile(file)
+        toast.success("File uploaded to Cloudflare R2.")
       }
-
-      toast.success(type === "thumbnail" ? "Thumbnail uploaded." : "File uploaded.")
     } catch (error) {
       console.error(error)
       toast.error(type === "thumbnail" ? "Thumbnail upload failed." : "File upload failed.")
@@ -309,7 +332,7 @@ export default function AdminPage() {
             <div className="mb-6">
               <h2 className="text-2xl font-black tracking-tight">Add a new product</h2>
               <p className="mt-2 text-sm text-slate-500">
-                Upload the teaching file, set the title, price, grade, and quarter.
+                Upload the teaching file to Cloudflare R2, set the title, price, grade, and quarter.
               </p>
             </div>
 
@@ -377,7 +400,7 @@ export default function AdminPage() {
                     accept="image/*"
                     onChange={(e) => {
                       const file = e.target.files?.[0]
-                      if (file) uploadToBlob(file, "thumbnail")
+                      if (file) handleAssetUpload(file, "thumbnail")
                     }}
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
                   />
@@ -393,12 +416,12 @@ export default function AdminPage() {
                     type="file"
                     onChange={(e) => {
                       const file = e.target.files?.[0]
-                      if (file) uploadToBlob(file, "file")
+                      if (file) handleAssetUpload(file, "file")
                     }}
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm"
                   />
                   <p className="text-xs text-slate-500">
-                    {uploading.file ? "Uploading file..." : fileName ? fileName : "Required"}
+                    {uploading.file ? "Uploading file to Cloudflare R2..." : fileName ? fileName : "Required"}
                   </p>
                 </div>
               </div>
@@ -433,7 +456,7 @@ export default function AdminPage() {
                 Prefer polished thumbnails with readable grade and quarter labels.
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                ZIP uploads are supported, and new ZIP products cache their contents for faster buyer loading.
+                Product ZIP files upload to Cloudflare R2, and new ZIP products cache their contents for faster buyer loading.
               </div>
             </div>
           </div>

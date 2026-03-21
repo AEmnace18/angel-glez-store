@@ -7,7 +7,7 @@ export async function uploadToBlob(file: File, folder: string) {
 
   const blob = await upload(`${folder}/${Date.now()}-${safeName}`, file, {
     access: "public",
-    handleUploadUrl: "/api/blob/upload",
+    handleUploadUrl: "/api/blob",
   })
 
   return blob
