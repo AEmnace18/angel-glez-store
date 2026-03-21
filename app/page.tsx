@@ -320,7 +320,7 @@ export default function Home() {
           .replace(/\b\w/g, (char) => char.toUpperCase()),
         fileName: item.file_name || "",
         fileUrl: item.file_url || "",
-        imageUrl: item.image_url || "",
+        imageUrl: item.thumbnail_url || item.image_url || "",
         likes: Number(item.likes || 0),
         sold: Number(item.sold || 0),
       }))
