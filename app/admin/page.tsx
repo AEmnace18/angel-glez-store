@@ -112,6 +112,7 @@ export default function AdminPage() {
   const [uploadedProductFile, setUploadedProductFile] = useState<File | null>(null)
   const [cachingZipEntries, setCachingZipEntries] = useState(false)
   const [uploadMessage, setUploadMessage] = useState("")
+  const [editingProductId, setEditingProductId] = useState<string | null>(null)
 
   const thumbnailInputRef = useRef<HTMLInputElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -243,6 +244,38 @@ export default function AdminPage() {
     }
   }
 
+
+  function startEditing(product: Product) {
+    setEditingProductId(product.id)
+    setTitle(product.title || "")
+    setDescription(product.description || "")
+    setPrice(String(product.price || ""))
+    setGrade(product.grade || "Grade 1")
+    setQuarter(product.quarter || "Q1")
+    setThumbnailUrl(product.thumbnail_url || "")
+    setThumbnailPreview(product.thumbnail_url || "")
+    setFileName(product.file_name || "")
+    setFileUrl(product.file_url || "")
+    setUploadedProductFile(null)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  function resetForm() {
+    setEditingProductId(null)
+    setTitle("")
+    setDescription("")
+    setPrice("")
+    setGrade("Grade 1")
+    setQuarter("Q1")
+    setThumbnailUrl("")
+    setThumbnailPreview("")
+    setFileName("")
+    setFileUrl("")
+    setUploadedProductFile(null)
+    if (thumbnailInputRef.current) thumbnailInputRef.current.value = ""
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
   async function handleCreateProduct() {
     if (!title.trim() || !description.trim() || !price.trim() || !grade || !quarter || !fileUrl || !fileName) {
       toast.error("Please complete all required fields.")
@@ -258,12 +291,41 @@ export default function AdminPage() {
 
     const isZipPackage = fileName.toLowerCase().endsWith(".zip")
 
-    if (isZipPackage && !uploadedProductFile) {
+    if (isZipPackage && !uploadedProductFile && !editingProductId) {
       toast.error("Please re-upload the ZIP file before saving.")
       return
     }
 
     setSaving(true)
+
+    if (editingProductId) {
+      const { error } = await supabase
+        .from("products")
+        .update({
+          title: title.trim(),
+          description: description.trim(),
+          price: parsedPrice,
+          grade,
+          quarter,
+          thumbnail_url: thumbnailUrl || null,
+          image_url: thumbnailUrl || null,
+          file_name: fileName,
+          file_url: fileUrl,
+        })
+        .eq("id", editingProductId)
+
+      setSaving(false)
+
+      if (error) {
+        toast.error("Failed to update product.")
+        return
+      }
+
+      toast.success("Product updated.")
+      resetForm()
+      loadProducts()
+      return
+    }
 
     const { data: insertedProduct, error } = await supabase
       .from("products")
@@ -315,18 +377,7 @@ export default function AdminPage() {
     setSaving(false)
 
     toast.success(isZipPackage ? "Product added and ZIP contents cached." : "Product added.")
-    setTitle("")
-    setDescription("")
-    setPrice("")
-    setGrade("Grade 1")
-    setQuarter("Q1")
-    setThumbnailUrl("")
-    setThumbnailPreview("")
-    setFileName("")
-    setFileUrl("")
-    setUploadedProductFile(null)
-    if (thumbnailInputRef.current) thumbnailInputRef.current.value = ""
-    if (fileInputRef.current) fileInputRef.current.value = ""
+    resetForm()
     loadProducts()
   }
 
@@ -402,11 +453,25 @@ export default function AdminPage() {
 
         <section className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
           <div className="rounded-[28px] border border-white/70 bg-white/88 p-5 shadow-[0_12px_40px_rgba(15,23,42,0.05)] md:p-6">
-            <div className="mb-5">
-              <h2 className="text-xl font-black tracking-tight">Add product</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Upload the thumbnail and teaching file to Cloudflare R2, then save the product.
-              </p>
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-black tracking-tight">
+                  {editingProductId ? "Edit product" : "Add product"}
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Upload the thumbnail and teaching file to Cloudflare R2, then save the product.
+                </p>
+              </div>
+
+              {editingProductId && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Cancel edit
+                </button>
+              )}
             </div>
 
             <div className="grid gap-4">
@@ -582,8 +647,12 @@ export default function AdminPage() {
                 {saving || cachingZipEntries
                   ? cachingZipEntries
                     ? "Caching ZIP contents..."
-                    : "Saving product..."
-                  : "Add product"}
+                    : editingProductId
+                      ? "Saving changes..."
+                      : "Saving product..."
+                  : editingProductId
+                    ? "Save changes"
+                    : "Add product"}
               </button>
             </div>
           </div>
@@ -673,12 +742,20 @@ export default function AdminPage() {
                       </span>
                     </div>
 
-                    <button
-                      onClick={() => handleDeleteProduct(product.id)}
-                      className="inline-flex min-h-[40px] w-full items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
-                    >
-                      Delete product
-                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => startEditing(product)}
+                        className="inline-flex min-h-[40px] w-full items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProduct(product.id)}
+                        className="inline-flex min-h-[40px] w-full items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </article>
               ))}
