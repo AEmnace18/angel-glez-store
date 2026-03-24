@@ -111,98 +111,43 @@ function FolderShell({
   color?: "amber" | "violet"
   className?: string
 }) {
-  const [style, setStyle] = useState({
-    rotateX: 0,
-    rotateY: 0,
-    translateY: 0,
-    glareX: 50,
-    glareY: 50,
-  })
-
   const palette =
     color === "amber"
       ? {
-          shell:
-            "border-[#e4bb69] bg-gradient-to-b from-[#ffd86b] via-[#f8c650] to-[#f1b63b]",
-          tab:
-            "border-[#deb15d] bg-gradient-to-b from-[#ffe188] to-[#f5c24a]",
-          inner:
-            "border-white/45 bg-white/28",
-          shadow:
-            "shadow-[0_18px_50px_rgba(245,158,11,0.16)]",
+          flap: "bg-amber-600 after:bg-amber-600 before:bg-amber-600",
+          layer4: "bg-zinc-400",
+          layer3: "bg-zinc-300",
+          layer2: "bg-zinc-200",
+          body:
+            "from-amber-500 to-amber-400 after:bg-amber-400 before:bg-amber-400 group-hover:shadow-[inset_0_20px_40px_#fbbf24,_inset_0_-20px_40px_#d97706]",
+          inner: "border-white/60 bg-white/72",
+          shadow: "shadow-[0_22px_55px_rgba(245,158,11,0.18)]",
         }
       : {
-          shell:
-            "border-violet-200 bg-gradient-to-b from-violet-100 via-fuchsia-50 to-white",
-          tab:
-            "border-violet-200 bg-gradient-to-b from-violet-200 to-fuchsia-100",
-          inner:
-            "border-violet-100 bg-white/80",
-          shadow:
-            "shadow-[0_18px_50px_rgba(124,58,237,0.12)]",
+          flap: "bg-violet-300 after:bg-violet-300 before:bg-violet-300",
+          layer4: "bg-violet-200",
+          layer3: "bg-violet-100",
+          layer2: "bg-fuchsia-50",
+          body:
+            "from-violet-200 to-fuchsia-100 after:bg-fuchsia-100 before:bg-fuchsia-100 group-hover:shadow-[inset_0_20px_40px_rgba(196,181,253,0.95),_inset_0_-20px_40px_rgba(139,92,246,0.28)]",
+          inner: "border-violet-100/80 bg-white/86",
+          shadow: "shadow-[0_22px_55px_rgba(124,58,237,0.12)]",
         }
 
-  const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    const px = x / rect.width
-    const py = y / rect.height
-
-    setStyle({
-      rotateX: (0.5 - py) * 10,
-      rotateY: (px - 0.5) * 14,
-      translateY: -8,
-      glareX: px * 100,
-      glareY: py * 100,
-    })
-  }
-
-  const reset = () => {
-    setStyle({
-      rotateX: 0,
-      rotateY: 0,
-      translateY: 0,
-      glareX: 50,
-      glareY: 50,
-    })
-  }
-
   return (
-    <div
-      className={`group relative [perspective:1600px] ${className}`}
-      onMouseMove={handleMove}
-      onMouseLeave={reset}
-    >
-      <div
-        className="pointer-events-none absolute inset-x-8 top-3 h-10 rounded-full bg-slate-900/10 blur-2xl transition duration-300 group-hover:scale-105"
-        style={{ transform: `translateY(${active ? 10 : 16}px)` }}
-      />
-      <div
-        className={`relative transition-transform duration-300 will-change-transform ${palette.shadow}`}
-        style={{
-          transform: `rotateX(${style.rotateX}deg) rotateY(${style.rotateY}deg) translateY(${style.translateY}px)`,
-          transformStyle: "preserve-3d",
-        }}
-      >
+    <div className={`group relative flex h-full flex-col ${className}`}>
+      <div className="pointer-events-none absolute inset-x-10 bottom-0 h-10 rounded-full bg-slate-900/12 blur-2xl transition-all duration-300 group-hover:scale-110 group-hover:blur-3xl" />
+      <div className={`relative mx-auto w-full max-w-[320px] [perspective:1500px] ${palette.shadow}`}>
         <div
-          className={`pointer-events-none absolute left-5 right-10 top-[-14px] h-11 rounded-t-[22px] border border-b-0 ${palette.tab} transition duration-300`}
-          style={{
-            transform: `translateZ(26px) rotateX(${active ? 18 : 30}deg) translateY(${active ? -7 : -3}px)`,
-            transformOrigin: "bottom center",
-          }}
+          className={`absolute left-0 top-0 z-10 h-full w-full origin-bottom rounded-2xl rounded-tl-none ${palette.flap} after:absolute after:bottom-[99%] after:left-0 after:h-4 after:w-20 after:rounded-t-2xl before:absolute before:-top-[15px] before:left-[75.5px] before:h-4 before:w-4 before:[clip-path:polygon(0_35%,0%_100%,50%_100%)]`}
         />
+        <div className={`absolute inset-1 rounded-2xl ${palette.layer4} transition-all duration-300 origin-bottom select-none group-hover:[transform:rotateX(-20deg)]`} />
+        <div className={`absolute inset-1 rounded-2xl ${palette.layer3} transition-all duration-300 origin-bottom group-hover:[transform:rotateX(-30deg)]`} />
+        <div className={`absolute inset-1 rounded-2xl ${palette.layer2} transition-all duration-300 origin-bottom group-hover:[transform:rotateX(-38deg)]`} />
         <div
-          className={`relative overflow-hidden rounded-[30px] border p-4 md:p-5 ${palette.shell}`}
-          style={{ transform: "translateZ(0px)" }}
+          className={`relative z-20 flex min-h-[260px] w-full origin-bottom flex-col rounded-2xl rounded-tr-none bg-gradient-to-t ${palette.body} transition-all duration-300 after:absolute after:bottom-[99%] after:right-0 after:h-[16px] after:w-[146px] after:rounded-t-2xl before:absolute before:-top-[10px] before:right-[142px] before:size-3 before:[clip-path:polygon(100%_14%,50%_100%,100%_100%)] group-hover:[transform:rotateX(-46deg)_translateY(1px)]`}
         >
-          <div
-            className="pointer-events-none absolute inset-0 opacity-80"
-            style={{
-              background: `radial-gradient(circle at ${style.glareX}% ${style.glareY}%, rgba(255,255,255,0.55), transparent 34%)`,
-            }}
-          />
-          <div className={`relative rounded-[24px] border p-4 md:p-5 ${palette.inner}`}>
+          <div className={`relative m-3 mt-5 flex flex-1 flex-col rounded-[22px] border p-4 md:p-5 ${palette.inner}`}>
             {children}
           </div>
         </div>
@@ -1182,7 +1127,7 @@ export default function Home() {
                   className={`text-left transition-transform duration-200 ${folderPulse === `quarter-${quarter.label}` ? "folder-click-bounce" : ""}`}
                 >
                   <FolderShell active={isActive} color="amber">
-                    <div className="mb-4 flex items-start justify-between gap-3">
+                    <div className="mb-3 flex items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-black uppercase tracking-[0.2em] text-amber-900/70">
                           {quarter.code}
@@ -1196,20 +1141,20 @@ export default function Home() {
                       )}
                     </div>
 
-                    <div className="rounded-[24px] bg-white/30 p-3 backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
+                    <div className="rounded-[20px] border border-white/55 bg-white/40 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
                       <div className="grid grid-cols-2 gap-3">
                         {previewItems.length > 0 ? (
                           previewItems.map((item) => (
-                            <div key={item.id} className="overflow-hidden rounded-[18px] border border-white/40 bg-white/55 shadow-sm">
-                              <img src={item.imageUrl} alt={item.title} className="h-28 w-full object-cover" />
+                            <div key={item.id} className="overflow-hidden rounded-[16px] border border-white/55 bg-white/70 shadow-sm">
+                              <img src={item.imageUrl} alt={item.title} className="h-24 w-full object-cover" />
                             </div>
                           ))
                         ) : (
                           <>
-                            <div className="flex h-28 items-center justify-center rounded-[18px] border border-dashed border-amber-900/10 bg-white/35 text-sm font-semibold text-amber-950/50">
+                            <div className="flex h-24 items-center justify-center rounded-[16px] border border-dashed border-amber-900/10 bg-white/45 text-sm font-semibold text-amber-950/50">
                               No preview
                             </div>
-                            <div className="flex h-28 items-center justify-center rounded-[18px] border border-dashed border-amber-900/10 bg-white/35 text-sm font-semibold text-amber-950/50">
+                            <div className="flex h-24 items-center justify-center rounded-[16px] border border-dashed border-amber-900/10 bg-white/45 text-sm font-semibold text-amber-950/50">
                               No preview
                             </div>
                           </>
