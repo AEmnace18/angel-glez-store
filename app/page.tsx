@@ -111,43 +111,98 @@ function FolderShell({
   color?: "amber" | "violet"
   className?: string
 }) {
+  const [style, setStyle] = useState({
+    rotateX: 0,
+    rotateY: 0,
+    translateY: 0,
+    glareX: 50,
+    glareY: 50,
+  })
+
   const palette =
     color === "amber"
       ? {
-          flap: "bg-amber-600 after:bg-amber-600 before:bg-amber-600",
-          layer4: "bg-zinc-400",
-          layer3: "bg-zinc-300",
-          layer2: "bg-zinc-200",
-          body:
-            "from-amber-500 to-amber-400 after:bg-amber-400 before:bg-amber-400 group-hover:shadow-[inset_0_20px_40px_#fbbf24,_inset_0_-20px_40px_#d97706]",
-          inner: "border-white/60 bg-white/72",
-          shadow: "shadow-[0_22px_55px_rgba(245,158,11,0.18)]",
+          shell:
+            "border-[#e4bb69] bg-gradient-to-b from-[#ffd86b] via-[#f8c650] to-[#f1b63b]",
+          tab:
+            "border-[#deb15d] bg-gradient-to-b from-[#ffe188] to-[#f5c24a]",
+          inner:
+            "border-white/45 bg-white/28",
+          shadow:
+            "shadow-[0_18px_50px_rgba(245,158,11,0.16)]",
         }
       : {
-          flap: "bg-violet-300 after:bg-violet-300 before:bg-violet-300",
-          layer4: "bg-violet-200",
-          layer3: "bg-violet-100",
-          layer2: "bg-fuchsia-50",
-          body:
-            "from-violet-200 to-fuchsia-100 after:bg-fuchsia-100 before:bg-fuchsia-100 group-hover:shadow-[inset_0_20px_40px_rgba(196,181,253,0.95),_inset_0_-20px_40px_rgba(139,92,246,0.28)]",
-          inner: "border-violet-100/80 bg-white/86",
-          shadow: "shadow-[0_22px_55px_rgba(124,58,237,0.12)]",
+          shell:
+            "border-violet-200 bg-gradient-to-b from-violet-100 via-fuchsia-50 to-white",
+          tab:
+            "border-violet-200 bg-gradient-to-b from-violet-200 to-fuchsia-100",
+          inner:
+            "border-violet-100 bg-white/80",
+          shadow:
+            "shadow-[0_18px_50px_rgba(124,58,237,0.12)]",
         }
 
+  const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const px = x / rect.width
+    const py = y / rect.height
+
+    setStyle({
+      rotateX: (0.5 - py) * 10,
+      rotateY: (px - 0.5) * 14,
+      translateY: -8,
+      glareX: px * 100,
+      glareY: py * 100,
+    })
+  }
+
+  const reset = () => {
+    setStyle({
+      rotateX: 0,
+      rotateY: 0,
+      translateY: 0,
+      glareX: 50,
+      glareY: 50,
+    })
+  }
+
   return (
-    <div className={`group relative flex h-full flex-col ${className}`}>
-      <div className="pointer-events-none absolute inset-x-10 bottom-0 h-10 rounded-full bg-slate-900/12 blur-2xl transition-all duration-300 group-hover:scale-110 group-hover:blur-3xl" />
-      <div className={`relative mx-auto w-full max-w-[320px] [perspective:1500px] ${palette.shadow}`}>
+    <div
+      className={`group relative [perspective:1600px] ${className}`}
+      onMouseMove={handleMove}
+      onMouseLeave={reset}
+    >
+      <div
+        className="pointer-events-none absolute inset-x-8 top-3 h-10 rounded-full bg-slate-900/10 blur-2xl transition duration-300 group-hover:scale-105"
+        style={{ transform: `translateY(${active ? 10 : 16}px)` }}
+      />
+      <div
+        className={`relative transition-transform duration-300 will-change-transform ${palette.shadow}`}
+        style={{
+          transform: `rotateX(${style.rotateX}deg) rotateY(${style.rotateY}deg) translateY(${style.translateY}px)`,
+          transformStyle: "preserve-3d",
+        }}
+      >
         <div
-          className={`absolute left-0 top-0 z-10 h-full w-full origin-bottom rounded-2xl rounded-tl-none ${palette.flap} after:absolute after:bottom-[99%] after:left-0 after:h-4 after:w-20 after:rounded-t-2xl before:absolute before:-top-[15px] before:left-[75.5px] before:h-4 before:w-4 before:[clip-path:polygon(0_35%,0%_100%,50%_100%)]`}
+          className={`pointer-events-none absolute left-5 right-10 top-[-14px] h-11 rounded-t-[22px] border border-b-0 ${palette.tab} transition duration-300`}
+          style={{
+            transform: `translateZ(26px) rotateX(${active ? 18 : 30}deg) translateY(${active ? -7 : -3}px)`,
+            transformOrigin: "bottom center",
+          }}
         />
-        <div className={`absolute inset-1 rounded-2xl ${palette.layer4} transition-all duration-300 origin-bottom select-none group-hover:[transform:rotateX(-20deg)]`} />
-        <div className={`absolute inset-1 rounded-2xl ${palette.layer3} transition-all duration-300 origin-bottom group-hover:[transform:rotateX(-30deg)]`} />
-        <div className={`absolute inset-1 rounded-2xl ${palette.layer2} transition-all duration-300 origin-bottom group-hover:[transform:rotateX(-38deg)]`} />
         <div
-          className={`relative z-20 flex min-h-[260px] w-full origin-bottom flex-col rounded-2xl rounded-tr-none bg-gradient-to-t ${palette.body} transition-all duration-300 after:absolute after:bottom-[99%] after:right-0 after:h-[16px] after:w-[146px] after:rounded-t-2xl before:absolute before:-top-[10px] before:right-[142px] before:size-3 before:[clip-path:polygon(100%_14%,50%_100%,100%_100%)] group-hover:[transform:rotateX(-46deg)_translateY(1px)]`}
+          className={`relative overflow-hidden rounded-[30px] border p-4 md:p-5 ${palette.shell}`}
+          style={{ transform: "translateZ(0px)" }}
         >
-          <div className={`relative m-3 mt-5 flex flex-1 flex-col rounded-[22px] border p-4 md:p-5 ${palette.inner}`}>
+          <div
+            className="pointer-events-none absolute inset-0 opacity-80"
+            style={{
+              background: `radial-gradient(circle at ${style.glareX}% ${style.glareY}%, rgba(255,255,255,0.55), transparent 34%)`,
+            }}
+          />
+          <div className={`relative rounded-[24px] border p-4 md:p-5 ${palette.inner}`}>
             {children}
           </div>
         </div>
@@ -182,6 +237,7 @@ export default function Home() {
   const [finderGrade, setFinderGrade] = useState("All Grades")
   const [finderQuarter, setFinderQuarter] = useState("All Quarters")
   const [finderSearch, setFinderSearch] = useState("")
+  const [parallax, setParallax] = useState({ x: 0, y: 0 })
 
   const triggerFolderFeel = (key: string) => {
     setFolderPulse(key)
@@ -265,7 +321,7 @@ export default function Home() {
           .replace(/\b\w/g, (char) => char.toUpperCase()),
         fileName: item.file_name || "",
         fileUrl: item.file_url || "",
-        imageUrl: item.thumbnail_url || item.image_url || "",
+        imageUrl: item.image_url || "",
         likes: Number(item.likes || 0),
         sold: Number(item.sold || 0),
       }))
@@ -465,6 +521,17 @@ export default function Home() {
     window.location.href = `/checkout?productId=${product.id}`
   }
 
+  useEffect(() => {
+    const handleParallax = (e: MouseEvent) => {
+      const x = (e.clientX / window.innerWidth - 0.5) * 18
+      const y = (e.clientY / window.innerHeight - 0.5) * 18
+      setParallax({ x, y })
+    }
+
+    window.addEventListener("mousemove", handleParallax)
+    return () => window.removeEventListener("mousemove", handleParallax)
+  }, [])
+
   const downloadProduct = async (product: Product) => {
     if (!hasPurchased(product.id)) {
       toast.error("Buy this product first to unlock download.", { style: toastStyle })
@@ -514,13 +581,13 @@ export default function Home() {
         <section className="relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_14%_10%,rgba(79,70,229,0.18),transparent_24%),radial-gradient(circle_at_84%_14%,rgba(217,119,6,0.16),transparent_22%),radial-gradient(circle_at_78%_70%,rgba(100,116,139,0.18),transparent_28%),linear-gradient(180deg,rgba(236,230,220,0.98),rgba(219,210,197,0.97))]" />
           <div className="absolute inset-0 opacity-[0.36]" style={{ backgroundImage: "linear-gradient(rgba(15,23,42,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.07) 1px, transparent 1px)", backgroundSize: "46px 46px", maskImage: "linear-gradient(180deg, rgba(0,0,0,0.95), transparent 88%)", WebkitMaskImage: "linear-gradient(180deg, rgba(0,0,0,0.95), transparent 88%)" }} />
-          <div className="pointer-events-none absolute -left-24 top-10 h-80 w-80 rounded-full bg-indigo-500/16 blur-3xl animate-float-orb-a" />
-          <div className="pointer-events-none absolute right-[-80px] top-8 h-96 w-96 rounded-full bg-amber-400/16 blur-3xl animate-float-orb-b" />
-          <div className="pointer-events-none absolute left-[6%] top-[16%] h-56 w-56 rounded-full bg-white/30 blur-3xl animate-float-orb-c" />
-          <div className="pointer-events-none absolute right-[10%] top-[22%] h-72 w-72 rounded-full bg-white/18 blur-3xl animate-float-orb-d" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-[560px] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.55),transparent_62%)] animate-glow-breathe" />
-          <div className="pointer-events-none absolute inset-x-[7%] top-[12%] h-[420px] rounded-[48px] border border-white/35 bg-[linear-gradient(135deg,rgba(255,255,255,0.20),rgba(255,255,255,0.04))] shadow-[0_40px_120px_rgba(15,23,42,0.06)] backdrop-blur-[2px] animate-drift-panel-a" style={{ transform: "rotate(-3deg)" }} />
-          <div className="pointer-events-none absolute right-[8%] top-[18%] h-[320px] w-[320px] rounded-[40px] border border-white/30 bg-[linear-gradient(135deg,rgba(99,102,241,0.10),rgba(255,255,255,0.04))] shadow-[0_30px_90px_rgba(79,70,229,0.08)] animate-drift-panel-b" style={{ transform: "rotate(9deg)" }} />
+          <div className="pointer-events-none absolute -left-24 top-10 h-80 w-80 rounded-full bg-indigo-500/16 blur-3xl" />
+          <div className="pointer-events-none absolute right-[-80px] top-8 h-96 w-96 rounded-full bg-amber-400/16 blur-3xl" />
+          <div className="pointer-events-none absolute left-[6%] top-[16%] h-56 w-56 rounded-full bg-white/30 blur-3xl" />
+          <div className="pointer-events-none absolute right-[10%] top-[22%] h-72 w-72 rounded-full bg-white/18 blur-3xl" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[560px] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.55),transparent_62%)]" />
+          <div className="pointer-events-none absolute inset-x-[7%] top-[12%] h-[420px] rounded-[48px] border border-white/35 bg-[linear-gradient(135deg,rgba(255,255,255,0.20),rgba(255,255,255,0.04))] shadow-[0_40px_120px_rgba(15,23,42,0.06)] backdrop-blur-[2px]" style={{ transform: "rotate(-3deg)" }} />
+          <div className="pointer-events-none absolute right-[8%] top-[18%] h-[320px] w-[320px] rounded-[40px] border border-white/30 bg-[linear-gradient(135deg,rgba(99,102,241,0.10),rgba(255,255,255,0.04))] shadow-[0_30px_90px_rgba(79,70,229,0.08)]" style={{ transform: "rotate(9deg)" }} />
 
           <div className="relative">
             <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 md:px-6 md:pt-5">
@@ -553,31 +620,31 @@ export default function Home() {
                     <nav className="hidden items-center gap-2 rounded-[22px] border border-stone-200/80 bg-white/88 p-2 md:flex">
                       <a
                         href="#quarters"
-                        className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-stone-100 hover:text-slate-900"
+                        className="nav-link rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-stone-100 hover:text-slate-900"
                       >
                         Quarters
                       </a>
                       <a
                         href="#find-my-cot"
-                        className="rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700"
+                        className="nav-pill rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-700"
                       >
                         Find My COT
                       </a>
                       <a
                         href="/shop"
-                        className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-stone-100 hover:text-slate-900"
+                        className="nav-link rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-stone-100 hover:text-slate-900"
                       >
                         Shop
                       </a>
                       <a
                         href="/purchases"
-                        className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-stone-100 hover:text-slate-900"
+                        className="nav-link rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-stone-100 hover:text-slate-900"
                       >
                         Purchases
                       </a>
                       <a
                         href="/admin-login"
-                        className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-stone-100 hover:text-slate-900"
+                        className="nav-link rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-stone-100 hover:text-slate-900"
                       >
                         Admin
                       </a>
@@ -617,31 +684,31 @@ export default function Home() {
                     <div className="grid grid-cols-5 gap-2 rounded-[24px] border border-slate-200 bg-white/90 p-2">
                       <a
                         href="#quarters"
-                        className="rounded-2xl px-2 py-2 text-center text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                        className="nav-link rounded-2xl px-2 py-2 text-center text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
                       >
                         Quarters
                       </a>
                       <a
                         href="#find-my-cot"
-                        className="rounded-2xl px-2 py-2 text-center text-xs font-semibold text-violet-700 transition hover:bg-violet-50"
+                        className="nav-pill rounded-2xl px-2 py-2 text-center text-xs font-semibold text-violet-700 transition hover:bg-violet-50"
                       >
                         Finder
                       </a>
                       <a
                         href="/shop"
-                        className="rounded-2xl px-2 py-2 text-center text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                        className="nav-link rounded-2xl px-2 py-2 text-center text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
                       >
                         Shop
                       </a>
                       <a
                         href="/purchases"
-                        className="rounded-2xl px-2 py-2 text-center text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                        className="nav-link rounded-2xl px-2 py-2 text-center text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
                       >
                         Files
                       </a>
                       <a
                         href="/admin-login"
-                        className="rounded-2xl px-2 py-2 text-center text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+                        className="nav-link rounded-2xl px-2 py-2 text-center text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
                       >
                         Admin
                       </a>
@@ -653,7 +720,12 @@ export default function Home() {
 
             <div className="mx-auto max-w-7xl px-4 pb-20 pt-36 md:px-6 md:pb-20 md:pt-40">
               <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
-                <div>
+                <div
+                  style={{
+                    transform: `translate3d(${parallax.x * 0.35}px, ${parallax.y * 0.35}px, 0)`,
+                    transition: "transform 220ms ease-out",
+                  }}
+                >
                   <div className="mb-6 flex flex-wrap items-center gap-3">
                     <img
                       src="/logo.png"
@@ -686,7 +758,7 @@ export default function Home() {
                   <div className="mt-8 flex flex-wrap gap-4">
                     <a
                       href="#quarters"
-                      className="rounded-[18px] border border-[#1e1b4b] bg-[#0f172a] px-6 py-3 font-bold text-white transition hover:scale-[1.03] hover:bg-[#131c31]"
+                      className="magnetic-btn rounded-[18px] border border-[#1e1b4b] bg-[#0f172a] px-6 py-3 font-bold text-white transition hover:scale-[1.03] hover:bg-[#131c31]"
                       style={{
                         boxShadow: "0 18px 40px rgba(15,23,42,0.18)",
                       }}
@@ -695,7 +767,7 @@ export default function Home() {
                     </a>
                     <a
                       href="/shop"
-                      className="rounded-[18px] border border-stone-200 bg-white px-6 py-3 font-bold text-slate-900 transition hover:bg-stone-50"
+                      className="magnetic-btn rounded-[18px] border border-stone-200 bg-white px-6 py-3 font-bold text-slate-900 transition hover:bg-stone-50"
                     >
                       View Collection
                     </a>
@@ -713,7 +785,13 @@ export default function Home() {
                     </span>
                   </div>
 
-                  <div className="mt-10 grid max-w-2xl gap-4 sm:grid-cols-3">
+                  <div
+                    className="mt-10 grid max-w-2xl gap-4 sm:grid-cols-3"
+                    style={{
+                      transform: `translate3d(${parallax.x * 0.18}px, ${parallax.y * 0.18}px, 0)`,
+                      transition: "transform 260ms ease-out",
+                    }}
+                  >
                     <div className="rounded-[26px] border border-stone-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,246,242,0.96))] p-5 shadow-[0_18px_44px_rgba(15,23,42,0.07)]">
                       <p className="text-3xl font-black text-slate-900">{products.length}</p>
                       <p className="mt-1 text-sm text-slate-500">Teaching Files</p>
@@ -729,7 +807,13 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="hidden lg:block">
+                <div
+                  className="hidden lg:block"
+                  style={{
+                    transform: `translate3d(${parallax.x * -0.5}px, ${parallax.y * -0.5}px, 0)`,
+                    transition: "transform 260ms ease-out",
+                  }}
+                >
                   <div className="relative rounded-[34px] border border-stone-200/80 bg-[rgba(255,252,248,0.86)] p-5 shadow-[0_30px_90px_rgba(15,23,42,0.12)] backdrop-blur-2xl">
                     <div className="pointer-events-none absolute inset-x-10 top-8 h-44 rounded-[32px] bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.14),transparent_65%)] blur-2xl" />
                     <div className="pointer-events-none absolute right-8 top-14 h-40 w-40 rounded-full bg-fuchsia-300/18 blur-3xl" />
@@ -1127,7 +1211,7 @@ export default function Home() {
                   className={`text-left transition-transform duration-200 ${folderPulse === `quarter-${quarter.label}` ? "folder-click-bounce" : ""}`}
                 >
                   <FolderShell active={isActive} color="amber">
-                    <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="mb-4 flex items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-black uppercase tracking-[0.2em] text-amber-900/70">
                           {quarter.code}
@@ -1141,20 +1225,20 @@ export default function Home() {
                       )}
                     </div>
 
-                    <div className="rounded-[20px] border border-white/55 bg-white/40 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
+                    <div className="rounded-[24px] bg-white/30 p-3 backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
                       <div className="grid grid-cols-2 gap-3">
                         {previewItems.length > 0 ? (
                           previewItems.map((item) => (
-                            <div key={item.id} className="overflow-hidden rounded-[16px] border border-white/55 bg-white/70 shadow-sm">
-                              <img src={item.imageUrl} alt={item.title} className="h-24 w-full object-cover" />
+                            <div key={item.id} className="overflow-hidden rounded-[18px] border border-white/40 bg-white/55 shadow-sm">
+                              <img src={item.imageUrl} alt={item.title} className="h-28 w-full object-cover" />
                             </div>
                           ))
                         ) : (
                           <>
-                            <div className="flex h-24 items-center justify-center rounded-[16px] border border-dashed border-amber-900/10 bg-white/45 text-sm font-semibold text-amber-950/50">
+                            <div className="flex h-28 items-center justify-center rounded-[18px] border border-dashed border-amber-900/10 bg-white/35 text-sm font-semibold text-amber-950/50">
                               No preview
                             </div>
-                            <div className="flex h-24 items-center justify-center rounded-[16px] border border-dashed border-amber-900/10 bg-white/45 text-sm font-semibold text-amber-950/50">
+                            <div className="flex h-28 items-center justify-center rounded-[18px] border border-dashed border-amber-900/10 bg-white/35 text-sm font-semibold text-amber-950/50">
                               No preview
                             </div>
                           </>
@@ -1978,67 +2062,53 @@ export default function Home() {
       `}</style>
 
       <style jsx global>{`
-        .animate-float-orb-a {
-          animation: floatOrbA 16s ease-in-out infinite;
+        .magnetic-btn {
+          position: relative;
+          overflow: hidden;
+          transition: transform 180ms ease, box-shadow 220ms ease, background-color 180ms ease;
         }
 
-        .animate-float-orb-b {
-          animation: floatOrbB 19s ease-in-out infinite;
+        .magnetic-btn::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(circle at center, rgba(255,255,255,0.22), transparent 55%);
+          opacity: 0;
+          transition: opacity 220ms ease;
+          pointer-events: none;
         }
 
-        .animate-float-orb-c {
-          animation: floatOrbC 14s ease-in-out infinite;
+        .magnetic-btn:hover::after {
+          opacity: 1;
         }
 
-        .animate-float-orb-d {
-          animation: floatOrbD 18s ease-in-out infinite;
+        .magnetic-btn:hover {
+          box-shadow: 0 18px 44px rgba(15,23,42,0.14);
+          transform: translateY(-2px) scale(1.03);
         }
 
-        .animate-drift-panel-a {
-          animation: driftPanelA 20s ease-in-out infinite;
+        .nav-link,
+        .nav-pill {
+          position: relative;
         }
 
-        .animate-drift-panel-b {
-          animation: driftPanelB 24s ease-in-out infinite;
+        .nav-link {
+          transition: transform 180ms ease, background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
         }
 
-        .animate-glow-breathe {
-          animation: glowBreathe 12s ease-in-out infinite;
+        .nav-link:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 10px 24px rgba(15,23,42,0.06);
         }
 
-        @keyframes floatOrbA {
-          0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-          50% { transform: translate3d(34px, 20px, 0) scale(1.05); }
+        .nav-pill {
+          box-shadow: 0 14px 28px rgba(124,58,237,0.18);
+          animation: navGlow 4s ease-in-out infinite;
         }
 
-        @keyframes floatOrbB {
-          0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-          50% { transform: translate3d(-30px, 28px, 0) scale(1.06); }
-        }
-
-        @keyframes floatOrbC {
-          0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.28; }
-          50% { transform: translate3d(22px, -18px, 0); opacity: 0.38; }
-        }
-
-        @keyframes floatOrbD {
-          0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.18; }
-          50% { transform: translate3d(-18px, 24px, 0); opacity: 0.26; }
-        }
-
-        @keyframes driftPanelA {
-          0%, 100% { transform: rotate(-3deg) translate3d(0, 0, 0); }
-          50% { transform: rotate(-4deg) translate3d(10px, 12px, 0); }
-        }
-
-        @keyframes driftPanelB {
-          0%, 100% { transform: rotate(9deg) translate3d(0, 0, 0); }
-          50% { transform: rotate(7deg) translate3d(-14px, 10px, 0); }
-        }
-
-        @keyframes glowBreathe {
-          0%, 100% { opacity: 0.92; }
-          50% { opacity: 1; }
+        @keyframes navGlow {
+          0%, 100% { box-shadow: 0 14px 28px rgba(124,58,237,0.18); }
+          50% { box-shadow: 0 18px 36px rgba(124,58,237,0.28); }
         }
       `}</style>
 
