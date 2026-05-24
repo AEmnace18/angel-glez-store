@@ -1,57 +1,54 @@
 import { NextResponse } from "next/server"
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
+import { GetObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
-
-const r2 = new S3Client({
-  region: "auto",
-  endpoint: process.env.R2_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-})
-
-function extractObjectKey(input: string) {
-  if (!input) return ""
-
-  if (!input.startsWith("http://") && !input.startsWith("https://")) {
-    return input
-  }
-
-  try {
-    const url = new URL(input)
-    const path = url.pathname.replace(/^\/+/, "")
-    const bucketName = process.env.R2_BUCKET_NAME || ""
-
-    if (bucketName && path.startsWith(`${bucketName}/`)) {
-      return path.slice(bucketName.length + 1)
-    }
-
-    return path
-  } catch {
-    return input
-  }
-}
+import { createR2Client, extractR2ObjectKey, requireR2BucketName } from "@/lib/server/r2"
+import { createSupabaseAdminClient } from "@/lib/server/supabase"
 
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const rawFileKey = String(body.fileKey || "")
-    const fileName = String(body.fileName || "download")
+    const purchaseId = String(body.purchaseId || "")
+    const buyerEmail = String(body.buyerEmail || "").trim().toLowerCase()
 
-    if (!rawFileKey) {
-      return NextResponse.json({ error: "Missing file key" }, { status: 400 })
+    if (!purchaseId || !buyerEmail) {
+      return NextResponse.json({ error: "Missing purchase info" }, { status: 400 })
     }
 
-    const objectKey = extractObjectKey(rawFileKey)
+    const supabase = createSupabaseAdminClient()
+    const { data, error } = await supabase
+      .from("purchases")
+      .select(`
+        id,
+        status,
+        buyer_email,
+        products (
+          file_name,
+          file_url
+        )
+      `)
+      .eq("id", purchaseId)
+      .eq("buyer_email", buyerEmail)
+      .single()
+
+    if (error || !data || data.status !== "approved" || !data.products) {
+      return NextResponse.json({ error: "Purchase not approved or not found" }, { status: 403 })
+    }
+
+    const product = Array.isArray(data.products) ? data.products[0] : data.products
+    const fileName = String(product?.file_name || "download")
+    const objectKey = extractR2ObjectKey(String(product?.file_url || ""))
+
+    if (!objectKey) {
+      return NextResponse.json({ error: "Product file is not connected" }, { status: 404 })
+    }
 
     const command = new GetObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME!,
+      Bucket: requireR2BucketName(),
       Key: objectKey,
       ResponseContentDisposition: `attachment; filename="${fileName}"`,
     })
 
-    const downloadUrl = await getSignedUrl(r2, command, { expiresIn: 60 * 5 })
+    const downloadUrl = await getSignedUrl(createR2Client(), command, { expiresIn: 60 * 5 })
 
     return NextResponse.json({ downloadUrl })
   } catch (error) {

@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { apiJson } from "@/lib/api-client"
+import { getProductImageSrc } from "@/lib/product-image-src"
+import { HomepageThemeStyles, StoreHeader } from "@/components/homepage-theme"
 
 type PurchaseRow = {
   id: string
@@ -36,35 +38,17 @@ export default function PurchasesPage() {
 
     if (!silent) setLoading(true)
 
-    const { data, error } = await supabase
-      .from("purchases")
-      .select(`
-        id,
-        status,
-        created_at,
-        products (
-          id,
-          title,
-          price,
-          quarter,
-          grade,
-          file_name,
-          file_url,
-          image_url
-        )
-      `)
-      .eq("buyer_email", email)
-      .order("created_at", { ascending: false })
-
-    if (error) {
+    try {
+      const { purchases: loadedPurchases } = await apiJson<{ purchases: PurchaseRow[] }>(
+        `/api/purchases?buyerEmail=${encodeURIComponent(email)}`
+      )
+      setPurchases(loadedPurchases || [])
+    } catch (error) {
       console.log("Load purchases error:", error)
       if (!silent) setPurchases([])
+    } finally {
       setLoading(false)
-      return
     }
-
-    setPurchases((data || []) as unknown as PurchaseRow[])
-    setLoading(false)
   }
 
   useEffect(() => {
@@ -73,38 +57,11 @@ export default function PurchasesPage() {
     loadPurchases(savedEmail)
   }, [])
 
-  useEffect(() => {
-    if (!buyerEmail) return
-
-    const channel = supabase
-      .channel("buyer-purchases")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "purchases",
-        },
-        () => {
-          loadPurchases(buyerEmail, true)
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [buyerEmail])
-
   const openPurchasedFiles = (purchaseId: string) => {
     window.location.href = `/purchases/${purchaseId}`
   }
 
-  const handleDownload = async (
-    purchaseId: string,
-    fileKey: string,
-    fileName: string
-  ) => {
+  const handleDownload = async (purchaseId: string) => {
     try {
       setDownloadingId(purchaseId)
 
@@ -114,8 +71,8 @@ export default function PurchasesPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          fileKey,
-          fileName,
+          purchaseId,
+          buyerEmail,
         }),
       })
 
@@ -135,7 +92,9 @@ export default function PurchasesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-10 text-slate-900">
+    <main className="agt-page min-h-screen bg-slate-100 px-4 py-10 text-slate-900">
+        <HomepageThemeStyles />
+        <StoreHeader cartCount={0} likedCount={0} />
       <div className="mx-auto max-w-5xl rounded-[28px] bg-white p-8 shadow-lg">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -176,7 +135,7 @@ export default function PurchasesPage() {
                 >
                   <div className="flex items-center gap-4">
                     <img
-                      src={product.image_url}
+                      src={getProductImageSrc(product.image_url)}
                       alt={product.title}
                       className="h-20 w-20 rounded-xl object-cover"
                     />
@@ -229,7 +188,7 @@ export default function PurchasesPage() {
 
                       <button
                         onClick={() =>
-                          handleDownload(purchase.id, product.file_url, product.file_name)
+                          handleDownload(purchase.id)
                         }
                         disabled={downloadingId === purchase.id}
                         className="rounded-xl bg-emerald-600 px-4 py-2 font-bold text-white disabled:opacity-70"

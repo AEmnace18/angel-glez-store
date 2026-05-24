@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { apiJson } from "@/lib/api-client"
+import { getProductImageSrc } from "@/lib/product-image-src"
+import { HomepageThemeStyles, StoreHeader } from "@/components/homepage-theme"
 
 type PurchaseDetails = {
   id: string
@@ -34,6 +36,12 @@ type ZipEntry = {
   name: string
   extension: string
   type: ZipEntryType
+}
+
+type ZipEntryResponse = Partial<ZipEntry> & {
+  path?: string
+  name?: string
+  type?: ZipEntryType
 }
 
 type PreviewKind = "image" | "pdf" | "docx" | "text" | "unsupported" | "none"
@@ -139,35 +147,19 @@ export default function PurchaseFilesPage({
       setLoading(true)
       setError("")
 
-      const { data, error } = await supabase
-        .from("purchases")
-        .select(`
-          id,
-          status,
-          created_at,
-          buyer_email,
-          products (
-            id,
-            title,
-            price,
-            quarter,
-            grade,
-            file_name,
-            file_url,
-            image_url
-          )
-        `)
-        .eq("id", purchaseId)
-        .eq("buyer_email", buyerEmail)
-        .single()
+      let typedPurchase: PurchaseDetails
 
-      if (error || !data) {
+      try {
+        const { purchase } = await apiJson<{ purchase: PurchaseDetails }>(
+          `/api/purchases/${encodeURIComponent(purchaseId)}?buyerEmail=${encodeURIComponent(buyerEmail)}`
+        )
+        typedPurchase = purchase
+      } catch {
         setError("Could not load this purchase.")
         setLoading(false)
         return
       }
 
-      const typedPurchase = data as unknown as PurchaseDetails
       setPurchase(typedPurchase)
 
       const product = typedPurchase.products
@@ -184,14 +176,15 @@ export default function PurchaseFilesPage({
             buyerEmail
           )}`
         )
-        const json = await res.json()
+        const json = (await res.json()) as { entries?: ZipEntryResponse[]; error?: string }
 
         if (!res.ok) {
           throw new Error(json?.error || "Failed to read ZIP contents")
         }
 
-        const fetchedEntries: ZipEntry[] = (json.entries || []).map((entry: any) => ({
-          ...entry,
+        const fetchedEntries: ZipEntry[] = (json.entries || []).map((entry) => ({
+          path: entry.path || "",
+          extension: entry.extension || "",
           name: entry.name || normalizeEntryName(entry.path || ""),
           type: entry.type || getFileType(entry.name || entry.path || ""),
         }))
@@ -369,7 +362,9 @@ export default function PurchaseFilesPage({
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(139,92,246,0.10),_transparent_22%),linear-gradient(180deg,_#f8fafc_0%,_#eef2f7_100%)] px-4 py-8 text-slate-900">
+      <main className="agt-page min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(139,92,246,0.10),_transparent_22%),linear-gradient(180deg,_#f8fafc_0%,_#eef2f7_100%)] px-4 py-8 text-slate-900">
+        <HomepageThemeStyles />
+        <StoreHeader cartCount={0} likedCount={0} />
         <div className="mx-auto max-w-7xl rounded-[32px] border border-white/70 bg-white/95 p-8 shadow-[0_28px_100px_rgba(15,23,42,0.10)]">
           <p className="text-sm font-medium text-slate-500">Loading your approved files...</p>
         </div>
@@ -379,7 +374,9 @@ export default function PurchaseFilesPage({
 
   if (!purchase || !purchase.products) {
     return (
-      <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(139,92,246,0.10),_transparent_22%),linear-gradient(180deg,_#f8fafc_0%,_#eef2f7_100%)] px-4 py-8 text-slate-900">
+      <main className="agt-page min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(139,92,246,0.10),_transparent_22%),linear-gradient(180deg,_#f8fafc_0%,_#eef2f7_100%)] px-4 py-8 text-slate-900">
+        <HomepageThemeStyles />
+        <StoreHeader cartCount={0} likedCount={0} />
         <div className="mx-auto max-w-7xl rounded-[32px] border border-white/70 bg-white/95 p-8 shadow-[0_28px_100px_rgba(15,23,42,0.10)]">
           <p className="text-sm text-red-600">{error || "Purchase not found."}</p>
           <a
@@ -398,7 +395,9 @@ export default function PurchaseFilesPage({
   const selectedExtension = selectedEntry?.extension?.toUpperCase() || "FILE"
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(139,92,246,0.10),_transparent_22%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.08),_transparent_18%),linear-gradient(180deg,_#f8fafc_0%,_#eef2f7_100%)] px-4 py-8 text-slate-900">
+    <main className="agt-page min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(139,92,246,0.10),_transparent_22%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.08),_transparent_18%),linear-gradient(180deg,_#f8fafc_0%,_#eef2f7_100%)] px-4 py-8 text-slate-900">
+        <HomepageThemeStyles />
+        <StoreHeader cartCount={0} likedCount={0} />
       <div className="mx-auto max-w-7xl space-y-5">
         <section className="overflow-hidden rounded-[32px] border border-white/70 bg-white/90 shadow-[0_28px_100px_rgba(15,23,42,0.10)] backdrop-blur-xl">
           <div className="border-b border-slate-200/80 bg-[linear-gradient(135deg,rgba(139,92,246,0.10),rgba(255,255,255,0.92),rgba(59,130,246,0.08))] px-6 py-6">
@@ -407,7 +406,7 @@ export default function PurchaseFilesPage({
                 <div className="relative shrink-0">
                   <div className="absolute inset-0 rounded-[24px] bg-violet-500/15 blur-xl" />
                   <img
-                    src={product.image_url}
+                    src={getProductImageSrc(product.image_url)}
                     alt={product.title}
                     className="relative h-24 w-24 rounded-[24px] border border-white/80 object-cover shadow-lg"
                   />

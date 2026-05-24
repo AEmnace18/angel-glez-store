@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Angel Glez COT Store
+
+Next.js storefront for selling digital teaching files with a real server-side backend layer.
+
+## Backend
+
+Sensitive actions run through Next API routes instead of trusting browser-side Supabase writes:
+
+- `/api/admin/session` creates an HTTP-only admin session cookie.
+- `/api/admin/products` handles admin product CRUD and ZIP manifest caching.
+- `/api/admin/payments` handles payment review, status changes, proof cleanup, and sold counts.
+- `/api/checkout` uploads payment proof and creates purchase rows.
+- `/api/purchases` loads buyer purchases by email.
+- `/api/download` verifies an approved purchase before creating an R2 signed download URL.
+
+For production, set `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD`, and `ADMIN_SESSION_SECRET` in your host environment. Local development still supports the previous admin password if `ADMIN_PASSWORD` is missing, but production requires real secrets.
 
 ## Getting Started
 
-First, run the development server:
+Copy `.env.local.example` to `.env.local` and fill in the values, then run:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database Tables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The backend expects these Supabase resources:
 
-## Learn More
+- `products`
+- `purchases`
+- `product_zip_entries`
+- Storage bucket: `payment-proofs`
+- Cloudflare R2 bucket for product files and thumbnails
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run dev
+npm run build
+npm run lint
+```

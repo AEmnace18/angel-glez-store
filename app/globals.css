@@ -1,59 +1,56 @@
 @import "tailwindcss";
 
-/* ===== BASE ===== */
+:root {
+  color-scheme: light;
+  --background: #f5f7fb;
+  --foreground: #020617;
+  --violet: #7c3aed;
+  --ink: #020617;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   margin: 0;
-  padding: 0;
-  background: #f1f5f9;
-  color: #0f172a;
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  background: var(--background);
+  color: var(--foreground);
 }
 
 * {
   box-sizing: border-box;
 }
 
-/* ===== FEATURED CARD FLIP ===== */
-@keyframes cardFlipIn {
-  0% {
-    opacity: 0;
-    transform: perspective(1200px) rotateY(85deg) scale(0.9);
-    transform-origin: left center;
-  }
-  100% {
-    opacity: 1;
-    transform: perspective(1200px) rotateY(0deg) scale(1);
-    transform-origin: left center;
-  }
+button,
+a,
+input,
+select,
+textarea {
+  letter-spacing: 0;
 }
 
-/* ===== MODAL ANIMATIONS ===== */
-@keyframes modalFadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+button,
+a {
+  touch-action: manipulation;
 }
 
-@keyframes modalScaleIn {
-  from {
-    opacity: 0;
-    transform: translateY(18px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+::selection {
+  background: #ede9fe;
+  color: #111827;
 }
 
-/* ===== BRAND / HEADER ANIMATIONS ===== */
-@keyframes brandReveal {
+:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+}
+
+@keyframes reveal-up {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.98);
+    transform: translateY(18px) scale(0.98);
   }
   to {
     opacity: 1;
@@ -61,50 +58,40 @@ body {
   }
 }
 
-@keyframes logoFloat {
+@keyframes pop {
   0% {
-    transform: translateY(0px) scale(1);
+    transform: scale(1);
   }
-  50% {
-    transform: translateY(-7px) scale(1.035);
+  45% {
+    transform: scale(1.14);
   }
   100% {
-    transform: translateY(0px) scale(1);
+    transform: scale(1);
   }
 }
 
-@keyframes glowPulse {
+@keyframes selected-pulse {
   0% {
-    opacity: 0.35;
-    transform: scale(0.92);
-  }
-  50% {
-    opacity: 0.9;
-    transform: scale(1.12);
+    box-shadow: 0 0 0 0 rgb(124 58 237 / 0.34);
   }
   100% {
-    opacity: 0.35;
-    transform: scale(0.92);
+    box-shadow: 0 0 0 10px rgb(124 58 237 / 0);
   }
 }
 
-@keyframes titleShimmer {
-  0% {
-    text-shadow: 0 0 0 rgba(255, 255, 255, 0);
+@keyframes shimmer {
+  from {
+    transform: translateX(-120%);
   }
-  50% {
-    text-shadow: 0 0 26px rgba(255, 255, 255, 0.18);
-  }
-  100% {
-    text-shadow: 0 0 0 rgba(255, 255, 255, 0);
+  to {
+    transform: translateX(120%);
   }
 }
 
-/* ===== QUARTER FOLDER ANIMATION ===== */
-@keyframes quarterFolderIn {
+@keyframes modal-enter {
   from {
     opacity: 0;
-    transform: translateY(26px) scale(0.96);
+    transform: translateY(16px) scale(0.97);
   }
   to {
     opacity: 1;
@@ -112,26 +99,117 @@ body {
   }
 }
 
-/* ===== UTILITY CLASSES ===== */
-.brand-pill {
-  animation: brandReveal 0.65s cubic-bezier(0.22, 1, 0.36, 1);
-  transform-origin: center;
+.app-surface {
+  background:
+    linear-gradient(90deg, rgb(15 23 42 / 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, rgb(15 23 42 / 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 50%, #f5f7fb 100%);
+  background-size: 44px 44px, 44px 44px, auto;
 }
 
-.brand-logo {
-  animation: logoFloat 3.2s ease-in-out infinite;
-  will-change: transform;
+.reveal-up {
+  animation: reveal-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.brand-logo-glow {
-  animation: glowPulse 3.2s ease-in-out infinite;
-  will-change: transform, opacity;
+.pressable {
+  position: relative;
+  overflow: hidden;
+  transform: translateZ(0);
+  transition:
+    transform 160ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease;
 }
 
-.brand-title {
-  animation: titleShimmer 3.8s ease-in-out infinite;
+.pressable::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 0%, rgb(255 255 255 / 0.24) 48%, transparent 100%);
+  opacity: 0;
+  transform: translateX(-120%);
+  pointer-events: none;
 }
 
-.quarter-folder {
-  animation: quarterFolderIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+.pressable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgb(15 23 42 / 0.12);
+}
+
+.pressable:hover::after {
+  opacity: 1;
+  animation: shimmer 0.8s ease;
+}
+
+.pressable:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 8px 18px rgb(15 23 42 / 0.10);
+}
+
+.selection-chip {
+  position: relative;
+  isolation: isolate;
+}
+
+.selection-chip.is-selected {
+  animation: selected-pulse 0.48s ease-out;
+}
+
+.selection-chip.is-selected::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border: 1px solid rgb(255 255 255 / 0.34);
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.counter-pop {
+  animation: pop 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.product-card {
+  transform: translateZ(0);
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms ease,
+    border-color 180ms ease;
+}
+
+.product-card:hover {
+  transform: translateY(-6px);
+  border-color: rgb(124 58 237 / 0.28);
+  box-shadow: 0 24px 54px rgb(15 23 42 / 0.14);
+}
+
+.product-card img {
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.product-card:hover img {
+  transform: scale(1.045);
+}
+
+.modal-card {
+  animation: modal-enter 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.premium-panel {
+  border: 1px solid rgb(226 232 240);
+  background: rgb(255 255 255 / 0.9);
+  box-shadow: 0 16px 44px rgb(15 23 42 / 0.08);
+  backdrop-filter: blur(18px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

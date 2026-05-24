@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react"
 import toast from "react-hot-toast"
-import { supabase } from "@/lib/supabase"
-
-const ADMIN_SESSION_KEY = "angel-glez-admin-auth"
+import { apiJson } from "@/lib/api-client"
+import { getProductImageSrc } from "@/lib/product-image-src"
+import { PremiumMotionStyles } from "@/components/premium-ui"
+import { HomepageThemeStyles, StoreHeader } from "@/components/homepage-theme"
 
 const toastStyle = {
   borderRadius: "14px",
@@ -41,44 +42,37 @@ export default function AdminPaymentsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const isAdmin = localStorage.getItem(ADMIN_SESSION_KEY)
-    if (isAdmin !== "true") {
-      window.location.href = "/admin-login"
-      return
+    const checkAdminSession = async () => {
+      try {
+        const { authenticated } = await apiJson<{ authenticated: boolean }>("/api/admin/session")
+
+        if (!authenticated) {
+          window.location.href = "/admin-login"
+          return
+        }
+
+        setCheckedAuth(true)
+        await loadPayments()
+      } catch {
+        window.location.href = "/admin-login"
+      }
     }
 
-    setCheckedAuth(true)
-    loadPayments()
+    checkAdminSession()
   }, [])
 
   const loadPayments = async () => {
     setLoading(true)
 
-    const { data, error } = await supabase
-      .from("purchases")
-      .select(`
-        *,
-        products (
-          id,
-          title,
-          price,
-          grade,
-          quarter,
-          file_name,
-          image_url,
-          sold
-        )
-      `)
-      .order("created_at", { ascending: false })
-
-    if (error) {
-      toast.error("Failed to load payments", { style: toastStyle })
+    try {
+      const { payments: loadedPayments } = await apiJson<{ payments: PaymentSubmission[] }>("/api/admin/payments")
+      setPayments(loadedPayments || [])
+    } catch (error) {
+      console.warn("Handled client error:", error instanceof Error ? error.message : error)
+      toast.error(error instanceof Error ? error.message : "Failed to load payments", { style: toastStyle })
+    } finally {
       setLoading(false)
-      return
     }
-
-    setPayments((data || []) as PaymentSubmission[])
-    setLoading(false)
   }
 
   const filteredPayments = useMemo(() => {
@@ -186,23 +180,15 @@ export default function AdminPaymentsPage() {
     if (status === "rejected") setActiveTab("rejected")
     if (status === "pending") setActiveTab("pending")
 
-    const { error } = await supabase.from("purchases").update({ status }).eq("id", payment.id)
-
-    if (error) {
+    try {
+      await apiJson<{ updated: boolean }>(`/api/admin/payments/${payment.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      })
+    } catch (error) {
       setPayments(previousPayments)
-      toast.error("Failed to update status", { style: toastStyle })
+      toast.error(error instanceof Error ? error.message : "Failed to update status", { style: toastStyle })
       return
-    }
-
-    if (status === "approved") {
-      const currentSold = Number(payment.products?.sold || 0)
-
-      await supabase.from("products").update({ sold: currentSold + 1 }).eq("id", payment.product_id)
-
-      if (payment.proof_path) {
-        await supabase.storage.from("payment-proofs").remove([payment.proof_path])
-        await supabase.from("purchases").update({ proof_path: null }).eq("id", payment.id)
-      }
     }
 
     toast.success(`Payment marked as ${status}`, { style: toastStyle })
@@ -210,32 +196,39 @@ export default function AdminPaymentsPage() {
   }
 
   const deleteSubmission = async (id: string) => {
-    const { error } = await supabase.from("purchases").delete().eq("id", id)
-
-    if (error) {
-      toast.error("Failed to delete record", { style: toastStyle })
-      return
+    try {
+      await apiJson<{ deleted: boolean }>(`/api/admin/payments/${id}`, {
+        method: "DELETE",
+      })
+      toast.success("Payment record deleted", { style: toastStyle })
+      loadPayments()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete record", { style: toastStyle })
     }
-
-    toast.success("Payment record deleted", { style: toastStyle })
-    loadPayments()
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem(ADMIN_SESSION_KEY)
+  const handleLogout = async () => {
+    await apiJson<{ authenticated: boolean }>("/api/admin/session", {
+      method: "DELETE",
+    }).catch(() => null)
     window.location.href = "/admin-login"
   }
 
   const getProofUrl = (proofPath: string | null) => {
     if (!proofPath) return null
-    const { data } = supabase.storage.from("payment-proofs").getPublicUrl(proofPath)
-    return data.publicUrl
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    if (!supabaseUrl) return null
+    return `${supabaseUrl.replace(/\/$/, "")}/storage/v1/object/public/payment-proofs/${proofPath}`
   }
 
   if (!checkedAuth) return null
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(139,92,246,0.14),_transparent_28%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_55%,#f8fafc_100%)] px-4 py-8 text-slate-900 md:px-6 lg:px-8">
+    <>
+      <PremiumMotionStyles />
+      <HomepageThemeStyles />
+      <main className="agt-page premium-page min-h-screen bg-[radial-gradient(circle_at_top,_rgba(139,92,246,0.14),_transparent_28%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_55%,#f8fafc_100%)] px-4 py-8 text-slate-900 md:px-6 lg:px-8">
+        <StoreHeader cartCount={0} likedCount={0} />
       <div className="mx-auto max-w-7xl">
         <section className="mb-8 overflow-hidden rounded-[34px] border border-white/60 bg-slate-900 px-6 py-8 text-white shadow-[0_25px_70px_rgba(15,23,42,0.18)] md:px-8 lg:px-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -465,7 +458,7 @@ export default function AdminPaymentsPage() {
                       {payment.products && (
                         <div className="flex items-center gap-3 rounded-2xl bg-white p-3">
                           <img
-                            src={payment.products.image_url}
+                            src={getProductImageSrc(payment.products.image_url)}
                             alt={payment.products.title}
                             className="h-14 w-14 rounded-xl object-cover"
                           />
@@ -565,6 +558,7 @@ export default function AdminPaymentsPage() {
           </div>
         )}
       </div>
-    </main>
+      </main>
+    </>
   )
 }

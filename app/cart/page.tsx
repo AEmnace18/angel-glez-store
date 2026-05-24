@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react"
 import toast from "react-hot-toast"
-import { supabase } from "@/lib/supabase"
+import { apiJson } from "@/lib/api-client"
+import { getProductImageSrc } from "@/lib/product-image-src"
+import type { ProductRow } from "@/lib/product-row"
+import { PremiumMotionStyles } from "@/components/premium-ui"
+import { HomepageThemeStyles, StoreHeader } from "@/components/homepage-theme"
 
 const CART_KEY = "angel-glez-cart"
 
@@ -57,29 +61,28 @@ export default function CartPage() {
     if (savedCart) setCartIds(JSON.parse(savedCart))
 
     const loadProducts = async () => {
-      const { data, error } = await supabase.from("products").select("*")
+      try {
+        const { products: productRows } = await apiJson<{ products: ProductRow[] }>("/api/products")
+        const mappedProducts: Product[] = (productRows || []).map((item) => ({
+          id: Number(item.id),
+          title: item.title || "Untitled Product",
+          price: Number(item.price || 0),
+          quarter: item.quarter || "",
+          grade: item.grade || "",
+          fileName: item.file_name || "",
+          fileUrl: item.file_url || "",
+          imageUrl: item.image_url || "",
+          likes: Number(item.likes || 0),
+          sold: Number(item.sold || 0),
+        }))
 
-      if (error) {
-        toast.error("Failed to load cart products", { style: toastStyle })
+        setProducts(mappedProducts)
+      } catch (error) {
+        console.warn("Handled client error:", error instanceof Error ? error.message : error)
+        toast.error(error instanceof Error ? error.message : "Failed to load cart products", { style: toastStyle })
+      } finally {
         setLoadingProducts(false)
-        return
       }
-
-      const mappedProducts: Product[] = (data || []).map((item: any) => ({
-        id: Number(item.id),
-        title: item.title || "Untitled Product",
-        price: Number(item.price || 0),
-        quarter: item.quarter || "",
-        grade: item.grade || "",
-        fileName: item.file_name || "",
-        fileUrl: item.file_url || "",
-        imageUrl: item.image_url || "",
-        likes: Number(item.likes || 0),
-        sold: Number(item.sold || 0),
-      }))
-
-      setProducts(mappedProducts)
-      setLoadingProducts(false)
     }
 
     loadProducts()
@@ -107,7 +110,11 @@ export default function CartPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(139,92,246,0.14),_transparent_28%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_55%,#f8fafc_100%)] px-4 py-8 text-slate-900 md:px-6 lg:px-8">
+    <>
+      <PremiumMotionStyles />
+      <HomepageThemeStyles />
+      <main className="agt-page premium-page min-h-screen bg-[radial-gradient(circle_at_top,_rgba(139,92,246,0.14),_transparent_28%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_55%,#f8fafc_100%)] px-4 py-8 text-slate-900 md:px-6 lg:px-8">
+        <StoreHeader cartCount={cartIds.length} likedCount={0} />
       <div className="mx-auto max-w-7xl">
         <section className="mb-8 overflow-hidden rounded-[34px] border border-white/60 bg-slate-900 px-6 py-8 text-white shadow-[0_25px_70px_rgba(15,23,42,0.18)] md:px-8 lg:px-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -181,7 +188,7 @@ export default function CartPage() {
                     <div className="flex gap-4">
                       <div className="relative">
                         <img
-                          src={product.imageUrl}
+                          src={getProductImageSrc(product.imageUrl)}
                           alt={product.title}
                           className="h-24 w-24 rounded-[22px] object-cover ring-1 ring-slate-200"
                         />
@@ -298,6 +305,7 @@ export default function CartPage() {
           </div>
         )}
       </div>
-    </main>
+      </main>
+    </>
   )
 }

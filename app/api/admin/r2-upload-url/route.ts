@@ -1,37 +1,65 @@
+import { randomUUID } from "crypto"
 import { NextResponse } from "next/server"
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3"
+import { PutObjectCommand } from "@aws-sdk/client-s3"
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
+import { isAdminAuthenticated, unauthorizedResponse } from "@/lib/server/admin-auth"
+import { createR2Client, requireR2BucketName, sanitizeObjectName } from "@/lib/server/r2"
 
-const r2 = new S3Client({
-  region: "auto",
-  endpoint: process.env.R2_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-})
+export const runtime = "nodejs"
+
+const validFolders = new Set(["thumbnails", "products"])
+
+function publicUrlFor(objectKey: string) {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL ||
+    process.env.R2_PUBLIC_BASE_URL ||
+    process.env.R2_PUBLIC_URL ||
+    ""
+
+  return baseUrl ? `${baseUrl.replace(/\/$/, "")}/${objectKey.replace(/^\//, "")}` : ""
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) return error.message
+  if (typeof error === "string" && error) return error
+  return "Failed to create upload URL"
+}
 
 export async function POST(req: Request) {
-  try {
-    const { fileName, contentType } = await req.json()
+  if (!(await isAdminAuthenticated())) return unauthorizedResponse()
 
-    const cleanName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_")
-    const objectKey = `products/${Date.now()}-${cleanName}`
+  try {
+    const body = await req.json()
+    const rawFolder = String(body.folder || "")
+    const rawFileName = String(body.fileName || "upload")
+    const folderFromPath = rawFileName.startsWith("thumbnails/") ? "thumbnails" : "products"
+    const folder = validFolders.has(rawFolder) ? rawFolder : folderFromPath
+    const baseName = rawFileName.split("/").pop() || "upload"
+    const objectKey = `${folder}/${Date.now()}-${randomUUID()}-${sanitizeObjectName(baseName)}`
+    const contentType = String(body.contentType || "application/octet-stream")
 
     const command = new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
+      Bucket: requireR2BucketName(),
       Key: objectKey,
-      ContentType: contentType || "application/octet-stream",
+      ContentType: contentType,
     })
 
-    const uploadUrl = await getSignedUrl(r2, command, { expiresIn: 60 * 5 })
+    const uploadUrl = await getSignedUrl(createR2Client(), command, { expiresIn: 60 * 5 })
 
     return NextResponse.json({
       uploadUrl,
       objectKey,
+      publicUrl: publicUrlFor(objectKey),
     })
-  } catch (err) {
-    console.error(err)
-    return NextResponse.json({ error: "Failed to create upload URL" }, { status: 500 })
+  } catch (error) {
+    console.error("ADMIN R2 SIGNED URL ERROR:", error)
+
+    return NextResponse.json(
+      {
+        error: getErrorMessage(error),
+        hint: "Check R2 environment variables. If browser-to-R2 upload has CORS issues, use /api/admin/r2-upload instead.",
+      },
+      { status: 500 }
+    )
   }
 }

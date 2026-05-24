@@ -1,7 +1,18 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3"
 import JSZip from "jszip"
+import { extractR2ObjectKey } from "@/lib/server/r2"
+import { createSupabaseAdminClient } from "@/lib/server/supabase"
+
+type PurchaseProduct = {
+  file_name?: string | null
+  file_url?: string | null
+}
+
+type PurchaseFileRow = {
+  status?: string | null
+  products?: PurchaseProduct | PurchaseProduct[] | null
+}
 
 const r2 = new S3Client({
   region: "auto",
@@ -12,7 +23,21 @@ const r2 = new S3Client({
   },
 })
 
-function bufferFromStream(stream: any): Promise<Buffer> {
+type R2Body = NodeJS.ReadableStream | Blob | { transformToByteArray: () => Promise<Uint8Array> }
+
+function hasByteArrayTransform(stream: R2Body): stream is { transformToByteArray: () => Promise<Uint8Array> } {
+  return "transformToByteArray" in stream && typeof stream.transformToByteArray === "function"
+}
+
+async function bufferFromStream(stream: R2Body): Promise<Buffer> {
+  if (hasByteArrayTransform(stream)) {
+    return Buffer.from(await stream.transformToByteArray())
+  }
+
+  if (stream instanceof Blob) {
+    return Buffer.from(await stream.arrayBuffer())
+  }
+
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = []
     stream.on("data", (chunk: Buffer) => chunks.push(Buffer.from(chunk)))
@@ -35,18 +60,6 @@ function fileType(name: string) {
 
 export async function GET(req: Request) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      return NextResponse.json(
-        { error: "Supabase environment variables are missing" },
-        { status: 500 }
-      )
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
     const { searchParams } = new URL(req.url)
     const purchaseId = searchParams.get("purchaseId") || ""
     const buyerEmail = searchParams.get("buyerEmail") || ""
@@ -55,6 +68,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Missing purchase info" }, { status: 400 })
     }
 
+    const supabase = createSupabaseAdminClient()
     const { data, error } = await supabase
       .from("purchases")
       .select(`
@@ -70,12 +84,15 @@ export async function GET(req: Request) {
       .eq("buyer_email", buyerEmail)
       .single()
 
-    if (error || !data || data.status !== "approved" || !data.products) {
+    const purchase = data as PurchaseFileRow | null
+    const product = Array.isArray(purchase?.products) ? purchase?.products[0] : purchase?.products
+
+    if (error || !purchase || purchase.status !== "approved" || !product) {
       return NextResponse.json({ error: "Purchase not approved or not found" }, { status: 403 })
     }
 
-    const fileName = String((data.products as any).file_name || "")
-    const objectKey = String((data.products as any).file_url || "")
+    const fileName = String(product.file_name || "")
+    const objectKey = extractR2ObjectKey(String(product.file_url || ""))
 
     if (!fileName.toLowerCase().endsWith(".zip")) {
       return NextResponse.json({ error: "This product is not a ZIP file" }, { status: 400 })
