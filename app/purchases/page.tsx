@@ -16,7 +16,6 @@ type PurchaseRow = {
     quarter: string
     grade: string
     file_name: string
-    file_url: string
     image_url: string
   } | null
 }

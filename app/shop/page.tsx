@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import toast from "react-hot-toast"
 import { apiJson } from "@/lib/api-client"
 import { getProductImageSrc } from "@/lib/product-image-src"
-import type { ProductRow } from "@/lib/product-row"
+import { normalizeProductRows, type Product, type ProductRow } from "@/lib/product-row"
 
 const CART_KEY = "angel-glez-cart"
 const LIKES_KEY = "angel-glez-likes"
@@ -20,20 +20,6 @@ const grades = [
   "Grade 5",
   "Grade 6",
 ]
-
-type Product = {
-  id: number
-  title: string
-  description: string
-  price: number
-  quarter: string
-  grade: string
-  fileName: string
-  fileUrl: string
-  imageUrl: string
-  likes?: number
-  sold?: number
-}
 
 type PurchaseLookup = {
   id: string
@@ -131,24 +117,7 @@ export default function ShopPage() {
 
       try {
         const { products: productRows } = await apiJson<{ products: ProductRow[] }>("/api/products")
-        const mappedProducts: Product[] = (productRows || []).map((item) => ({
-          id: Number(item.id),
-          title: item.title || "Untitled Product",
-          description: item.description || "",
-          price: Number(item.price || 0),
-          quarter: String(item.quarter || "").trim().toUpperCase(),
-          grade: String(item.grade || "")
-            .trim()
-            .toLowerCase()
-            .replace(/\b\w/g, (char) => char.toUpperCase()),
-          fileName: item.file_name || "",
-          fileUrl: item.file_url || "",
-          imageUrl: item.image_url || "",
-          likes: Number(item.likes || 0),
-          sold: Number(item.sold || 0),
-        }))
-
-        setProducts(mappedProducts)
+        setProducts(normalizeProductRows(productRows))
       } catch (error) {
         setLoadError(error instanceof Error ? error.message : "Failed to load products.")
       } finally {
@@ -255,11 +224,6 @@ export default function ShopPage() {
   const downloadProduct = async (product: Product) => {
     if (!hasPurchased(product.id)) {
       toast.error("Buy this product first to unlock download.", { style: toastStyle })
-      return
-    }
-
-    if (!product.fileUrl) {
-      toast.error("Download link is not connected yet.", { style: toastStyle })
       return
     }
 

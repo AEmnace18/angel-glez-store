@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import toast from "react-hot-toast"
 import { apiJson } from "@/lib/api-client"
 import { getProductImageSrc } from "@/lib/product-image-src"
-import type { ProductRow } from "@/lib/product-row"
+import { normalizeProductRows, type Product, type ProductRow } from "@/lib/product-row"
 import { HomepageThemeStyles, StoreHeader } from "@/components/homepage-theme"
 
 const CART_KEY = "angel-glez-cart"
@@ -24,18 +24,6 @@ const cardLift = "cg-card-lift"
 
 const inputClass =
   "w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-4 outline-none transition-all duration-300 focus:border-violet-500 focus:bg-white focus:ring-4 focus:ring-violet-100"
-
-type Product = {
-  id: number
-  title: string
-  price: number
-  quarter: string
-  grade: string
-  fileName: string
-  fileUrl?: string
-  imageUrl: string
-  likes?: number
-}
 
 function PremiumStyleLayer() {
   return (
@@ -222,19 +210,7 @@ function CheckoutContent() {
     const loadProducts = async () => {
       try {
         const { products: productRows } = await apiJson<{ products: ProductRow[] }>("/api/products")
-        const mappedProducts: Product[] = (productRows || []).map((item) => ({
-          id: Number(item.id),
-          title: item.title || "Untitled Product",
-          price: Number(item.price || 0),
-          quarter: item.quarter || "",
-          grade: item.grade || "",
-          fileName: item.file_name || "",
-          fileUrl: item.file_url || "",
-          imageUrl: item.image_url || "",
-          likes: Number(item.likes || 0),
-        }))
-
-        setProducts(mappedProducts)
+        setProducts(normalizeProductRows(productRows))
       } catch (error) {
         console.warn("Handled client error:", error instanceof Error ? error.message : error)
         toast.error(error instanceof Error ? error.message : "Failed to load products", { style: toastStyle })

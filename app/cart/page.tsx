@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import toast from "react-hot-toast"
 import { apiJson } from "@/lib/api-client"
 import { getProductImageSrc } from "@/lib/product-image-src"
-import type { ProductRow } from "@/lib/product-row"
+import { normalizeProductRows, type Product, type ProductRow } from "@/lib/product-row"
 import { PremiumMotionStyles } from "@/components/premium-ui"
 import { HomepageThemeStyles, StoreHeader } from "@/components/homepage-theme"
 
@@ -14,19 +14,6 @@ const toastStyle = {
   borderRadius: "14px",
   background: "#0f172a",
   color: "#fff",
-}
-
-type Product = {
-  id: number
-  title: string
-  price: number
-  quarter: string
-  grade: string
-  fileName: string
-  fileUrl: string
-  imageUrl: string
-  likes?: number
-  sold?: number
 }
 
 function CartIcon({ className = "h-5 w-5" }: { className?: string }) {
@@ -63,20 +50,7 @@ export default function CartPage() {
     const loadProducts = async () => {
       try {
         const { products: productRows } = await apiJson<{ products: ProductRow[] }>("/api/products")
-        const mappedProducts: Product[] = (productRows || []).map((item) => ({
-          id: Number(item.id),
-          title: item.title || "Untitled Product",
-          price: Number(item.price || 0),
-          quarter: item.quarter || "",
-          grade: item.grade || "",
-          fileName: item.file_name || "",
-          fileUrl: item.file_url || "",
-          imageUrl: item.image_url || "",
-          likes: Number(item.likes || 0),
-          sold: Number(item.sold || 0),
-        }))
-
-        setProducts(mappedProducts)
+        setProducts(normalizeProductRows(productRows))
       } catch (error) {
         console.warn("Handled client error:", error instanceof Error ? error.message : error)
         toast.error(error instanceof Error ? error.message : "Failed to load cart products", { style: toastStyle })

@@ -30,7 +30,6 @@ export async function GET(req: Request, context: RouteContext) {
           quarter,
           grade,
           file_name,
-          file_url,
           image_url
         )
       `)

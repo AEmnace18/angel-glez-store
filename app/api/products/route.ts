@@ -6,7 +6,7 @@ export async function GET() {
     const supabase = createSupabaseAdminClient()
     const { data, error } = await supabase
       .from("products")
-      .select("*")
+      .select("id, title, description, price, quarter, grade, file_name, image_url, thumbnail_url, likes, sold, created_at")
       .order("created_at", { ascending: false })
 
     if (error) {
