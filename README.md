@@ -12,6 +12,7 @@ Sensitive actions run through Next API routes instead of trusting browser-side S
 - `/api/checkout` uploads payment proof and creates purchase rows.
 - `/api/purchases` loads buyer purchases by email.
 - `/api/download` verifies an approved purchase before creating an R2 signed download URL.
+- `/api/reviews` loads product reviews and only accepts reviews tied to approved purchases.
 
 For production, set `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD`, and `ADMIN_SESSION_SECRET` in your host environment. Local development still supports the previous admin password if `ADMIN_PASSWORD` is missing, but production requires real secrets.
 
@@ -32,6 +33,7 @@ The backend expects these Supabase resources:
 - `products`
 - `purchases`
 - `product_zip_entries`
+- `product_reviews` (`supabase/product-reviews.sql`)
 - Storage bucket: `payment-proofs`
 - Cloudflare R2 bucket for product files and thumbnails
 

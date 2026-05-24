@@ -27,16 +27,24 @@ const grades = [
   "Grade 6",
 ]
 
-type ReviewDraft = {
+type ReviewSummary = {
   rating: number
   count: number
 }
 
 type ReviewEntry = {
   id: string
+  productId: number
   rating: number
   text: string
   author: string
+  createdAt?: string
+}
+
+type ProductReviewsResponse = {
+  reviewsByProduct?: Record<number, ReviewEntry[]>
+  ratingsByProduct?: Record<number, ReviewSummary>
+  setupNeeded?: boolean
 }
 
 type PurchaseLookup = {
@@ -475,7 +483,7 @@ export default function Home() {
   const [modalGrade, setModalGrade] = useState<string | null>(null)
   const [folderPulse, setFolderPulse] = useState<string | null>(null)
   const [folderWhoosh, setFolderWhoosh] = useState(false)
-  const [productRatings, setProductRatings] = useState<Record<number, ReviewDraft>>({})
+  const [productRatings, setProductRatings] = useState<Record<number, ReviewSummary>>({})
   const [productReviews, setProductReviews] = useState<Record<number, ReviewEntry[]>>({})
   const [reviewingProductId, setReviewingProductId] = useState<number | null>(null)
   const [hoveredStars, setHoveredStars] = useState(0)
@@ -554,24 +562,6 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    const savedRatings = localStorage.getItem("angel-glez-ratings")
-    if (savedRatings) {
-      try {
-        setProductRatings(JSON.parse(savedRatings))
-      } catch {}
-    }
-  }, [])
-
-  useEffect(() => {
-    const savedReviews = localStorage.getItem("angel-glez-written-reviews")
-    if (savedReviews) {
-      try {
-        setProductReviews(JSON.parse(savedReviews))
-      } catch {}
-    }
-  }, [])
-
-  useEffect(() => {
     const loadProducts = async () => {
       setLoadingProducts(true)
       setLoadError(null)
@@ -588,6 +578,34 @@ export default function Home() {
 
     loadProducts()
   }, [])
+
+  const productIdsKey = useMemo(() => products.map((product) => product.id).join(","), [products])
+
+  useEffect(() => {
+    if (!productIdsKey) {
+      setProductRatings({})
+      setProductReviews({})
+      return
+    }
+
+    const loadReviews = async () => {
+      try {
+        const {
+          ratingsByProduct = {},
+          reviewsByProduct = {},
+        } = await apiJson<ProductReviewsResponse>(
+          `/api/reviews?productIds=${encodeURIComponent(productIdsKey)}`
+        )
+
+        setProductRatings(ratingsByProduct)
+        setProductReviews(reviewsByProduct)
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    loadReviews()
+  }, [productIdsKey])
 
   const featuredProducts = products.slice(0, 6)
 
@@ -678,18 +696,29 @@ export default function Home() {
     const saved = productRatings[productId]
     if (saved) return saved
 
-    const baseRating = 4.5 + ((productId % 5) * 0.1)
-    return {
-      rating: Number(Math.min(5, baseRating).toFixed(1)),
-      count: 8 + (productId % 11),
-    }
+    return { rating: 0, count: 0 }
   }
 
   const getRecentReviews = (productId: number) => {
     return productReviews[productId] || []
   }
 
-  const submitReview = (productId: number) => {
+  const submitReview = async (productId: number) => {
+    if (!hasPurchased(productId)) {
+      toast.error("Buy this product first to write a review.", { style: toastStyle })
+      return
+    }
+
+    const buyerEmail = localStorage.getItem("angel-glez-buyer-email") || ""
+    const purchaseId = purchaseIdsByProduct[productId]
+
+    if (!buyerEmail || !purchaseId) {
+      toast.error("Open your Purchases page first so we can verify your approved order.", {
+        style: toastStyle,
+      })
+      return
+    }
+
     if (!selectedStars) {
       toast.error("Pick a star rating first.", { style: toastStyle })
       return
@@ -700,40 +729,39 @@ export default function Home() {
       return
     }
 
-    const current = getRatingMeta(productId)
-    const totalScore = current.rating * current.count + selectedStars
-    const nextCount = current.count + 1
-    const nextRating = Number((totalScore / nextCount).toFixed(1))
+    try {
+      const {
+        ratingsByProduct = {},
+        reviewsByProduct = {},
+      } = await apiJson<ProductReviewsResponse>("/api/reviews", {
+        method: "POST",
+        body: JSON.stringify({
+          productId,
+          purchaseId,
+          buyerEmail,
+          rating: selectedStars,
+          text: reviewText.trim(),
+        }),
+      })
 
-    const updatedRatings = {
-      ...productRatings,
-      [productId]: {
-        rating: nextRating,
-        count: nextCount,
-      },
+      setProductRatings((current) => ({
+        ...current,
+        ...ratingsByProduct,
+      }))
+      setProductReviews((current) => ({
+        ...current,
+        ...reviewsByProduct,
+      }))
+      setReviewingProductId(null)
+      setHoveredStars(0)
+      setSelectedStars(0)
+      setReviewText("")
+      toast.success("Review added", { style: toastStyle })
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to submit review.", {
+        style: toastStyle,
+      })
     }
-
-    const nextReview = {
-      id: `${productId}-${Date.now()}`,
-      rating: selectedStars,
-      text: reviewText.trim(),
-      author: "Teacher",
-    }
-
-    const updatedReviews = {
-      ...productReviews,
-      [productId]: [nextReview, ...(productReviews[productId] || [])].slice(0, 5),
-    }
-
-    setProductRatings(updatedRatings)
-    setProductReviews(updatedReviews)
-    localStorage.setItem("angel-glez-ratings", JSON.stringify(updatedRatings))
-    localStorage.setItem("angel-glez-written-reviews", JSON.stringify(updatedReviews))
-    setReviewingProductId(null)
-    setHoveredStars(0)
-    setSelectedStars(0)
-    setReviewText("")
-    toast.success("Review added", { style: toastStyle })
   }
 
   const addToCart = (product: Product) => {
@@ -1943,6 +1971,18 @@ export default function Home() {
 
                       <button
                         onClick={() => {
+                          if (!hasPurchased(selectedProduct.id)) {
+                            toast.error("Buy this product first to write a review.", { style: toastStyle })
+                            return
+                          }
+
+                          if (!purchaseIdsByProduct[selectedProduct.id]) {
+                            toast.error("Open your Purchases page first so we can verify your approved order.", {
+                              style: toastStyle,
+                            })
+                            return
+                          }
+
                           setReviewingProductId(selectedProduct.id)
                           setHoveredStars(0)
                         }}
@@ -1985,7 +2025,9 @@ export default function Home() {
                       </div>
 
                       <p className="mt-3 text-sm leading-7 text-slate-500">
-                        
+                        {getRatingMeta(selectedProduct.id).count === 0
+                          ? "No verified reviews yet. Approved buyers can share feedback after purchase."
+                          : "These reviews are tied to approved purchases."}
                       </p>
 
                       <div className="mt-4 flex flex-wrap gap-2">
